@@ -19,7 +19,17 @@ lex_process* lex_process_create(
 void lex_process_free(lex_process* process){
 	for(unsigned long long i = 0;i < process->token_count;++i)
 	{
-		if(process->tokens[i].type == TOKEN_TYPE_STRING)
+		if(process->tokens[i].type
+		==
+		TOKEN_TYPE_STRING
+		||
+		process->tokens[i].type
+		==
+		TOKEN_TYPE_OPERATOR
+		||
+		process->tokens[i].type
+		==
+		TOKEN_TYPE_KEYWORDS)
 		{
 			free(process->tokens[i].sval);
 		}

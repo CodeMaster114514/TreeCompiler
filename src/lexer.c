@@ -176,6 +176,170 @@ Token* make_string_token(char start_delim,char end_delim)
 	return token_creat(&token);
 }
 
+static bool is_single_operator(char op)
+{
+	return op == '+' ||
+		op == '-' ||
+		op == '/' ||
+		op == '*' ||
+		op == '=' ||
+		op == '<' ||
+		op == '>' ||
+		op == '|' ||
+		op == '&' ||
+		op == '^' ||
+		op == '%' ||
+		op == '!' ||
+		op == '(' ||
+		op == '[' ||
+		op == ',' ||
+		op == '.' ||
+		op == '~' ||
+		op == '?';
+}
+
+static bool op_treated_as_one(char op)
+{
+	return op == '(' ||
+		op == '[' ||
+//		op == ',' ||
+//		op == '.' ||
+		op == '*' ||
+		op == '?' ;
+}
+
+bool op_valid(const char* op)
+{
+	return S_EQ(op,"++") ||
+		S_EQ(op,"--") ||
+		S_EQ(op,"+=") ||
+		S_EQ(op,"-=") ||
+		S_EQ(op,"+") ||
+		S_EQ(op,"-") ||
+		S_EQ(op,"*") ||
+		S_EQ(op,"/") ||
+		S_EQ(op,"<=") ||
+		S_EQ(op,">=") ||
+		S_EQ(op,"==") ||
+		S_EQ(op,"^") ||
+		S_EQ(op,">>") ||
+		S_EQ(op,"<<") ||
+		S_EQ(op,"*=") ||
+		S_EQ(op,"/=") ||
+		S_EQ(op,"&&") ||
+		S_EQ(op,"||") ||
+		S_EQ(op,"|") ||
+		S_EQ(op,"&") ||
+		S_EQ(op,"=") ||
+		S_EQ(op,"!=") ||
+		S_EQ(op,"->") ||
+		S_EQ(op,".") ||
+		S_EQ(op,",") ||
+		S_EQ(op,"(") ||
+		S_EQ(op,"[") ||
+		S_EQ(op,"...") ||
+		S_EQ(op,"~") ||
+		S_EQ(op,"?") ||
+		S_EQ(op,"<") ||
+		S_EQ(op,">") ||
+		S_EQ(op,"%") ||
+		S_EQ(op,"!");
+}
+
+char* read_op()
+{
+	bool single_operator = true;
+	char c = nextc();
+	int len = 1;
+	char* op = calloc(128,sizeof(char));
+	op[0] = c;
+	if(!op_treated_as_one(c))
+	{
+		c = peekc();
+		int i = 1;
+		if(is_single_operator(c))
+		{
+again:
+			op[i] = c;
+			++len;
+			single_operator = false;
+			nextc();
+			c = peekc();
+			if(is_single_operator(c)){
+				++i;
+				goto again;
+			}
+		}
+	}
+	char* op_ret = calloc(len+1,sizeof(char));
+	for(int i = 0;i < len;i++)
+	{
+		op_ret[i] = op[i];
+	}
+	free(op);
+	op_ret[len] = '\0';
+	if(!op_valid(op_ret))
+	{
+		compile_error(
+			LexProcess->cprocess,
+			"The operator %s isn\'t valid\n",
+			op_ret
+		);
+	}
+	return op_ret;
+}
+
+void lex_parentheses_buffer_write(char c)
+{
+	const char* buffer = (char*) LexProcess->parentheses_buffer;
+	int buffer_len = LexProcess->parentheses_buffer_len;
+	char* new_buffer = calloc(buffer_len+1,sizeof(char));
+	new_buffer[buffer_len] = c;
+	LexProcess->parentheses_buffer = new_buffer;
+	++LexProcess->parentheses_buffer_len;
+}
+
+void lex_new_expression()
+{
+	++LexProcess->current_expression_count;
+	if(LexProcess->current_expression_count
+		==
+		1
+	)
+	{
+		LexProcess->parentheses_buffer
+			= calloc(1,sizeof(char));
+	}
+}
+
+bool lex_is_in_expression()
+{
+	return LexProcess->current_expression_count > 0;
+}
+
+Token* make_operator_or_string_token()
+{
+	char c = peekc();
+	if(c == '<')
+	{
+		Token* token = &LexProcess->tokens[LexProcess->token_count-1];
+		if(token_is_keyword(token,"include"))
+		{
+			return make_string_token('<','>');
+		}
+	}
+	Token* token = token_creat(&(Token)
+	{
+		.type = TOKEN_TYPE_OPERATOR,
+		.sval = read_op()
+	});
+	if(c == '(')
+	{
+		lex_new_expression();
+	}
+	return token;
+}
+
 Token* read_next_token()
 {
 	Token* token = NULL;
@@ -185,6 +349,10 @@ Token* read_next_token()
 		NUMERIC_CASE:
 			token = make_number_token();
 			break;
+		OPERATOR_CASE_EXCLUDING_DIVISION:
+			token = make_operator_or_string_token();
+			break;
+
 		case '\n':
 		case ' ':
 		case '\t':

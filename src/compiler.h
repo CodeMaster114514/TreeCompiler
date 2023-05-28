@@ -13,6 +13,9 @@ typedef struct {
 	const char* filename;
 } Pos;
 
+#define S_EQ(str0,str1) \
+	(str0 && str1 && (strcmp(str0,str1) == 0))
+
 #define NUMERIC_CASE \
 	case '1': \
 	case '2': \
@@ -23,6 +26,25 @@ typedef struct {
 	case '7': \
 	case '8': \
 	case '9'
+
+#define OPERATOR_CASE_EXCLUDING_DIVISION \
+	case '+': \
+	case '-': \
+	case '*': \
+	case '/': \
+	case '<': \
+	case '>': \
+	case '%': \
+	case '^': \
+	case '!': \
+	case '=': \
+	case '~': \
+	case '|': \
+	case '(': \
+	case '[': \
+	case ',': \
+	case '.': \
+	case '?'
 
 enum {
 	LEX_ANALYSIS_ALL_OK,
@@ -97,6 +119,7 @@ struct lex_process{
 
 	int current_expression_count;
 	const char* parentheses_buffer;
+	int parentheses_buffer_len;
 	lex_process_functions* process_functions;
 	void* private;
 };
@@ -134,5 +157,8 @@ lex_process* lex_process_create(
 );
 void lex_process_free(lex_process*);
 int lex(lex_process*);
+
+//in file token.c
+bool token_is_keyword(Token*,const char*);
 
 #endif
