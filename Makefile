@@ -1,5 +1,5 @@
 METHOR= debug
-OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o
+OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/parentheses_buffer.o
 INCLUDE= -I./src/
 CODE_LOCATION=./src/
 
@@ -28,6 +28,9 @@ all: $(OBJECTS)
 
 ./build/token.o: $(CODE_LOCATION)./token.c
 	gcc $(CODE_LOCATION)./token.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/token.o -c
+
+./build/parentheses_buffer.o: $(CODE_LOCATION)./parentheses_buffer.c
+	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/parentheses_buffer.o -c
 
 clear:
 	rm ${OBJECTS} -rf

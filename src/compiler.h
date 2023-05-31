@@ -46,6 +46,15 @@ typedef struct {
 	case '.': \
 	case '?'
 
+#define SYMBOL_CASE \
+	case '{': \
+	case '}': \
+	case ':': \
+	case ';': \
+	case '\\':\
+	case ')': \
+	case ']'
+
 enum {
 	LEX_ANALYSIS_ALL_OK,
 	LEX_ANALYSIS_INPUT_ERROR
@@ -111,15 +120,22 @@ typedef struct {
 	LEX_PROCESS_PUSH_CHAR push_char;
 } lex_process_functions;
 
+typedef struct {
+	char* buffer;
+	int buffer_len;
+} parentheses_buffer;
+
 struct lex_process{
 	Pos pos;
 	Token* tokens;
 	unsigned long long token_count;
 	compile_process* cprocess;
 
-	int current_expression_count;
-	const char* parentheses_buffer;
-	int parentheses_buffer_len;
+	struct {
+		int current_expression_count,
+		    parentheses_buffer_count;
+		parentheses_buffer** buffer_info;
+	} expression;
 	lex_process_functions* process_functions;
 	void* private;
 };
@@ -160,5 +176,9 @@ int lex(lex_process*);
 
 //in file token.c
 bool token_is_keyword(Token*,const char*);
+
+//in file parenthese_buffer.c
+parentheses_buffer* creat_parentheses_buffer();
+void write(parentheses_buffer*,char);
 
 #endif

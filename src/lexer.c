@@ -289,32 +289,46 @@ again:
 	return op_ret;
 }
 
-void lex_parentheses_buffer_write(char c)
-{
-	const char* buffer = (char*) LexProcess->parentheses_buffer;
-	int buffer_len = LexProcess->parentheses_buffer_len;
-	char* new_buffer = calloc(buffer_len+1,sizeof(char));
-	new_buffer[buffer_len] = c;
-	LexProcess->parentheses_buffer = new_buffer;
-	++LexProcess->parentheses_buffer_len;
-}
-
 void lex_new_expression()
 {
-	++LexProcess->current_expression_count;
-	if(LexProcess->current_expression_count
+	++LexProcess->expression.current_expression_count;
+	if(LexProcess->expression.current_expression_count == 1)
+	{
+		if(LexProcess->expression.buffer_info == NULL)
+		{
+			LexProcess->expression.buffer_info = calloc(1,sizeof(parentheses_buffer*));
+			++LexProcess->expression.parentheses_buffer_count;
+		}
+		else
+		{
+			parentheses_buffer** buffer = calloc(LexProcess->expression.parentheses_buffer_count,sizeof(parentheses_buffer*));
+			for(int i = 0;i < LexProcess->expression.parentheses_buffer_count;++i)
+			{
+				buffer[i] = LexProcess->expression.buffer_info[i];
+			}
+			++LexProcess->expression.parentheses_buffer_count;
+			free(LexProcess->expression.buffer_info);
+			LexProcess->expression.buffer_info = buffer;
+		}
+		LexProcess->expression.buffer_info[LexProcess->expression.parentheses_buffer_count - 1] = creat_parentheses_buffer();
+	}
+}
+
+void lex_finish_expression()
+{
+	--LexProcess->expression.current_expression_count;
+	if(LexProcess->expression.current_expression_count
 		==
 		1
 	)
 	{
-		LexProcess->parentheses_buffer
-			= calloc(1,sizeof(char));
+		compile_error(LexProcess->cprocess,"You can't close an expression that doesn' exist!");
 	}
 }
 
 bool lex_is_in_expression()
 {
-	return LexProcess->current_expression_count > 0;
+	return LexProcess->expression.current_expression_count > 0;
 }
 
 Token* make_operator_or_string_token()
@@ -340,6 +354,20 @@ Token* make_operator_or_string_token()
 	return token;
 }
 
+Token* make_symbol_token()
+{
+	char c = nextc();
+	if(c == '(')
+	{
+		lex_finish_expression();
+	}
+	return token_creat(&(Token)
+	{
+		.type = TOKEN_TYPE_SYMBOL,
+		.cval = c
+	});
+}
+
 Token* read_next_token()
 {
 	Token* token = NULL;
@@ -353,6 +381,9 @@ Token* read_next_token()
 			token = make_operator_or_string_token();
 			break;
 
+		SYMBOL_CASE:
+			token = make_symbol_token();
+			break;
 		case '\n':
 		case ' ':
 		case '\t':
@@ -385,8 +416,8 @@ void add_token(Token** tokens_in,Token* token,int token_count)
 }
 
 int lex(lex_process* process){
-	process->current_expression_count = 0;
-	process->parentheses_buffer = NULL;
+	process->expression.current_expression_count = 0;
+	process->expression.buffer_info = NULL;
 	LexProcess = process;
 	Token* token = read_next_token();
 	process->tokens[0] = token[0];

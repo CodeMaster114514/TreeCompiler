@@ -10,13 +10,9 @@ lex_process* process;
 
 void freeAll()
 {
-	free(process->tokens);
 	fclose(process->cprocess->in_fp.fp);
 	fclose(process->cprocess->out_fp);
-	free(process->cprocess);
-	if (!(process->private == NULL))
-	free(process->private);
-	free(process);
+	lex_process_free(process);
 }
 
 void compile_error(compile_process* CompileProcess,const char* msg,...)
@@ -94,6 +90,5 @@ int compile_file(
 	fclose(cprocess->in_fp.fp);
 	fclose(cprocess->out_fp);
 	lex_process_free(lex_process);
-	free(cprocess);
 	return COMPILER_FILE_COMPILE_OK;
 }

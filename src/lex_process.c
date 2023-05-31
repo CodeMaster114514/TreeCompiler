@@ -17,6 +17,13 @@ lex_process* lex_process_create(
 }
 
 void lex_process_free(lex_process* process){
+	free(process->cprocess);
+	for(int i = 0;i < process->expression.parentheses_buffer_count;++i)
+	{
+		free(process->expression.buffer_info[i]->buffer);
+		free(process->expression.buffer_info[i]);
+	}
+	free(process->expression.buffer_info);
 	for(unsigned long long i = 0;i < process->token_count;++i)
 	{
 		if(process->tokens[i].type
@@ -35,5 +42,7 @@ void lex_process_free(lex_process* process){
 		}
 	}
 	free(process->tokens);
+	if(!process->private == NULL)
+	free(process->private);
 	free(process);
 }
