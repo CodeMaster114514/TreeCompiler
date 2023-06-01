@@ -42,7 +42,7 @@ void lex_process_free(lex_process* process){
 		}
 	}
 	free(process->tokens);
-	if(!process->private == NULL)
+	if(!process->private)
 	free(process->private);
 	free(process);
 }

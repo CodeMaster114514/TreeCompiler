@@ -331,6 +331,41 @@ bool lex_is_in_expression()
 	return LexProcess->expression.current_expression_count > 0;
 }
 
+bool is_keyword(const char* str)
+{
+	return S_EQ(str,"unsigned")	||
+		S_EQ(str,"signed")	||
+		S_EQ(str,"char")	||
+		S_EQ(str,"short")	||
+		S_EQ(str,"int")		||
+		S_EQ(str,"long")	||
+		S_EQ(str,"float")	||
+		S_EQ(str,"double")	||
+		S_EQ(str,"void")	||
+		S_EQ(str,"typedef")	||
+		S_EQ(str,"struct")	||
+		S_EQ(str,"static")	||
+		S_EQ(str,"union")	||
+		S_EQ(str,"__ignore_typecheck")||
+		S_EQ(str,"return")	||
+		S_EQ(str,"include")	||
+		S_EQ(str,"sizeof")	||
+		S_EQ(str,"if")  	||
+		S_EQ(str,"else")	||
+		S_EQ(str,"while")	||
+		S_EQ(str,"for") 	||
+		S_EQ(str,"do")  	||
+		S_EQ(str,"break")	||
+		S_EQ(str,"switch")	||
+		S_EQ(str,"continue")	||
+		S_EQ(str,"case")	||
+		S_EQ(str,"default")	||
+		S_EQ(str,"goto")	||
+		S_EQ(str,"const")	||
+		S_EQ(str,"extern")	||
+		S_EQ(str,"restrict");
+}
+
 Token* make_operator_or_string_token()
 {
 	char c = peekc();
@@ -368,6 +403,48 @@ Token* make_symbol_token()
 	});
 }
 
+Token* make_identifier_or_keyword_token()
+{
+	int i = 0;
+	Pos pos_of_LexProcess = LexProcess->pos;
+	Pos pos_of_cprocess = LexProcess->cprocess->pos;
+	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
+	for(char c = nextc();
+		(c >= 'a' && c <= 'z')
+		||
+		(c >='A' && c <= 'Z')
+		||
+		(c >= '0' && c <= '9')
+		||
+		(c == '_');
+		c = nextc()
+	) ++i;
+	LexProcess->pos = pos_of_LexProcess;
+	LexProcess->cprocess->pos = pos_of_cprocess;
+	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
+	char* str = calloc(i+1,sizeof(char));
+	for(int j = 0;j < i;++j)
+	{
+		str[j] = nextc();
+	}
+	str[i] = '\0';
+	return token_creat(&(Token)
+	{
+		.type = TOKEN_TYPE_IDENTIFIER,
+		.sval = str
+	});
+}
+
+Token* read_special_token()
+{
+	char c = peekc();
+	if(isalpha(c) || c == '_')
+	{
+		return make_identifier_or_keyword_token();
+	}
+	return NULL;
+}
+
 Token* read_next_token()
 {
 	Token* token = NULL;
@@ -396,6 +473,8 @@ Token* read_next_token()
 			break;
 
 		default:
+			token = read_special_token();
+			if(!token)
 			compile_error(LexProcess->cprocess,"Unexpexted token\n");
 	}
 	return token;
