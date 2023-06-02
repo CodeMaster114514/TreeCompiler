@@ -428,6 +428,12 @@ Token* make_identifier_or_keyword_token()
 		str[j] = nextc();
 	}
 	str[i] = '\0';
+	if(is_keyword(str)){
+		return token_creat(&(Token){
+			.type = TOKEN_TYPE_KEYWORDS,
+			.sval = str
+		});
+	}
 	return token_creat(&(Token)
 	{
 		.type = TOKEN_TYPE_IDENTIFIER,
@@ -469,7 +475,7 @@ Token* read_next_token()
 		case '"':
 			token = make_string_token('"','"');
 			break;
-		case EOF:
+		case '\377':
 			break;
 
 		default:
