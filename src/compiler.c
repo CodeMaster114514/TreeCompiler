@@ -60,17 +60,18 @@ int compile_file(
 		return COMPILER_FAILED_WITH_ERROR;
 	}
 	cprocess->in_fp.file_path = input_file;
-	/*long long p = 0;
-	fseek(process->in_fp.fp,0,SEEK_END);
-	char* text = (char*) malloc(ftell(process->in_fp.fp));
-	fseek(process->in_fp.fp,0,SEEK_SET);
-	while(!feof(process->in_fp.fp)){
-		text[p] = fgetc(process->in_fp.fp);
+	long long p = 0;
+	fseek(cprocess->in_fp.fp,0,SEEK_END);
+	char* text = (char*) malloc(5+ftell(cprocess->in_fp.fp));
+	fseek(cprocess->in_fp.fp,0,SEEK_SET);
+	while(!feof(cprocess->in_fp.fp)){
+		text[p] = fgetc(cprocess->in_fp.fp);
 		++p;
 	}
 	text[--p] = '\0';
 	printf("%s",text);
-	free(text);*/
+	free(text);
+	fseek(cprocess->in_fp.fp,0,SEEK_SET);
 
 	lex_process* lex_process = lex_process_create(
 		cprocess,

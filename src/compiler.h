@@ -18,6 +18,7 @@ typedef struct {
 	(str0 && str1 && (strcmp(str0,str1) == 0))
 
 #define NUMERIC_CASE \
+	case '0': \
 	case '1': \
 	case '2': \
 	case '3': \

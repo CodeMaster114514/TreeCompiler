@@ -2,7 +2,6 @@ METHOR= debug
 OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/parentheses_buffer.o
 INCLUDE= -I./src/
 CODE_LOCATION=./src/
-OUT_DIR = ./build
 
 ifeq ($(METHOR),debug)
 	COMPILE_METHOR= -g
@@ -12,10 +11,10 @@ else
 	COMPILE_METHOR= drvrvgg#乱码使其报错
 endif
 
-all: $(OBJECTS) $(OUT_DIR)
+all: $(OBJECTS)
 	gcc $(CODE_LOCATION)main.c ${INCLUDE} ${OBJECTS} $(COMPILE_METHOR) -o main
 
-./build/compiler.o: $(CODE_LOCATION)./compiler.c $(OUT_DIR)
+./build/compiler.o: $(CODE_LOCATION)./compiler.c
 	gcc $(CODE_LOCATION)./compiler.c ${INCLUDE} $(COMPILE_METHOR) -o ./build/compiler.o -c
 
 ./build/process.o: $(CODE_LOCATION)./process.c $(OUT_DIR)
@@ -32,9 +31,6 @@ all: $(OBJECTS) $(OUT_DIR)
 
 ./build/parentheses_buffer.o: $(CODE_LOCATION)./parentheses_buffer.c $(OUT_DIR)
 	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/parentheses_buffer.o -c
-
-./build:
-	mkdir build
 
 clear:
 	rm ${OBJECTS} -rf

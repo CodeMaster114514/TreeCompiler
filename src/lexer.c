@@ -465,7 +465,7 @@ Token* make_one_line_comment_token(){
 	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
 	char c;
 	for(c = nextc();
-		!(c == '\n' && c == '\377');
+		c != '\n' && c != '\377';
 		c = nextc()
 	){
 		++i;
@@ -483,12 +483,81 @@ Token* make_one_line_comment_token(){
 	});
 }
 
+Token* make_multiline_comment_token()
+{
+	int i = 0;
+	Pos pos_of_LexProcess = LexProcess->pos;
+	Pos pos_of_cprocess = LexProcess->cprocess->pos;
+	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
+	char c;
+	while(1){
+		for(c = nextc();
+			c != '*' && c != '\377';
+			c = nextc()
+		)
+		{
+			++i;
+		}
+		if(c == '\377')
+		{
+			compile_error(LexProcess->cprocess,"you didn't close the mutiline_comment\n");
+		}
+		else if(c == '*')
+		{
+			if(peekc() == '/')
+			{
+				nextc();
+				++i;
+				break;
+			}
+		}
+	}
+	LexProcess->pos = pos_of_LexProcess;
+	LexProcess->cprocess->pos = pos_of_cprocess;
+	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
+	char* str = calloc(i+1,sizeof(char*));
+	for(int j = 0;j < i;++j)
+	{
+		str[j] = nextc();
+	}
+	return token_creat(&(Token)
+	{
+		.type = TOKEN_TYPE_COMMENT,
+		.sval = str
+	});
+}
 
+Token* handle_comment()
+{
+	char c = peekc();
+	if(c == '/')
+	{
+		nextc();
+		if(peekc() == '/')
+		{
+			nextc();
+			return make_one_line_comment_token();
+		}
+		else if(peekc() == '*')
+		{
+			nextc();
+			return make_multiline_comment_token();
+		}
+		pushc('/');
+		return make_operator_or_string_token();
+	}
+	return NULL;
+}
 
 Token* read_next_token()
 {
 	Token* token = NULL;
 	char c = peekc();
+	token = handle_comment();
+	if(token)
+	{
+		return token;
+	}
 	switch(c)
 	{
 		NUMERIC_CASE:
