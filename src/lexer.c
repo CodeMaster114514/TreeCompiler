@@ -451,6 +451,38 @@ Token* read_special_token()
 	return NULL;
 }
 
+Token* make_new_line_token(){
+	char c = nextc();
+	return token_creat(&(Token){
+		.type = TOKEN_TYPE_NEWLINE
+	});
+}
+
+Token* make_one_line_comment_token(){
+	int i = 0;
+	Pos pos_of_LexProcess = LexProcess->pos;
+	Pos pos_of_cprocess = LexProcess->cprocess->pos;
+	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
+	char c;
+	for(c = nextc();
+		!(c == '\n' && c == '\377');
+		c = nextc()
+	){
+		++i;
+	}
+	char* str = calloc(i+1,sizeof(char));
+	LexProcess->pos = pos_of_LexProcess;
+	LexProcess->cprocess->pos = pos_of_cprocess;
+	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
+	for(int j = 0;j < i;++j){
+		str[j] = nextc();
+	}
+	return token_creat(&(Token){
+		.type = TOKEN_TYPE_COMMENT,
+		.sval = str
+	});
+}
+
 Token* read_next_token()
 {
 	Token* token = NULL;
@@ -467,14 +499,19 @@ Token* read_next_token()
 		SYMBOL_CASE:
 			token = make_symbol_token();
 			break;
-		case '\n':
 		case ' ':
 		case '\t':
 			token = handle_whitespace();
 			break;
+
+		case '\n':
+			token = make_new_line_token();
+			break;
+
 		case '"':
 			token = make_string_token('"','"');
 			break;
+
 		case '\377':
 			break;
 
