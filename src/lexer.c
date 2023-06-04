@@ -40,7 +40,9 @@ char get_escaped_char(char c)
 			break;
 		case '0':
 			data = '\0';
-		break;
+			break;
+		case '\\':
+			data = '\\';
 	default:
 		compile_error(
 			LexProcess->cprocess,
@@ -67,6 +69,13 @@ static char nextc()
 		LexProcess->pos.col = 1;
 	}
 	return c;
+}
+
+static char assert_next_char(char c)
+{
+	char next_char = nextc();
+	assert(c == next_char);
+	return next_char;
 }
 
 static void pushc(char c)
@@ -557,6 +566,29 @@ Token* handle_comment()
 	return NULL;
 }
 
+Token* make_quote_token()
+{
+	assert_next_char('\'');
+	char c = nextc();
+	if(c == '\\')
+	{
+		c = nextc();
+		c = get_escaped_char(c);
+	}
+	if(nextc() != '\'')
+	{
+		compile_error(
+			LexProcess->cprocess,
+			"You didn't close the quote!"
+		);
+	}
+	return token_creat(&(Token)
+	{
+		.type = TOKEN_TYPE_NUMBER,
+		.cval = c
+	});
+}
+
 Token* read_next_token()
 {
 	Token* token = NULL;
@@ -589,6 +621,10 @@ Token* read_next_token()
 
 		case '"':
 			token = make_string_token('"','"');
+			break;
+
+		case '\'':
+			token = make_quote_token();
 			break;
 
 		case '\377':

@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 
 typedef struct {
 	int line;
