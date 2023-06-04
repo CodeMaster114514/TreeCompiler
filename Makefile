@@ -17,19 +17,19 @@ all: $(OBJECTS)
 ./build/compiler.o: $(CODE_LOCATION)./compiler.c
 	gcc $(CODE_LOCATION)./compiler.c ${INCLUDE} $(COMPILE_METHOR) -o ./build/compiler.o -c
 
-./build/process.o: $(CODE_LOCATION)./process.c $(OUT_DIR)
+./build/process.o: $(CODE_LOCATION)./process.c
 	gcc $(CODE_LOCATION)./process.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/process.o -c
 
-./build/lex_process.o: $(CODE_LOCATION)./lex_process.c $(OUT_DIR)
+./build/lex_process.o: $(CODE_LOCATION)./lex_process.c
 	gcc $(CODE_LOCATION)./lex_process.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/lex_process.o -c
 
-./build/lexer.o: $(CODE_LOCATION)./lexer.c $(OUT_DIR)
+./build/lexer.o: $(CODE_LOCATION)./lexer.c
 	gcc $(CODE_LOCATION)./lexer.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/lexer.o -c
 
-./build/token.o: $(CODE_LOCATION)./token.c $(OUT_DIR)
+./build/token.o: $(CODE_LOCATION)./token.c
 	gcc $(CODE_LOCATION)./token.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/token.o -c
 
-./build/parentheses_buffer.o: $(CODE_LOCATION)./parentheses_buffer.c $(OUT_DIR)
+./build/parentheses_buffer.o: $(CODE_LOCATION)./parentheses_buffer.c
 	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/parentheses_buffer.o -c
 
 clear:

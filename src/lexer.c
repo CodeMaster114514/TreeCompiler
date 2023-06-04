@@ -3,6 +3,53 @@
 static lex_process* LexProcess;
 static Token tmp_token;
 
+char get_escaped_char(char c)
+{
+	char data;
+	switch(c)
+	{
+		case 'n':
+			data = '\n';
+			break;
+		case 't':
+			data = '\t';
+			break;
+		case 'a':
+			data = '\a';
+			break;
+		case 'b':
+			data = '\b';
+			break;
+		case 'f':
+			data = '\f';
+			break;
+		case 'r':
+			data = '\r';
+			break;
+		case 'v':
+			data = '\v';
+			break;
+		case '\'':
+			data = '\'';
+			break;
+		case '\"':
+			data = '\"';
+			break;
+		case '\?':
+			data = '\?';
+			break;
+		case '0':
+			data = '\0';
+		break;
+	default:
+		compile_error(
+			LexProcess->cprocess,
+			"E escape character compilation error\n"
+		);
+	}
+	return data;
+}
+
 Token* read_next_token();
 
 static char peekc()
@@ -123,48 +170,7 @@ Token* make_string_token(char start_delim,char end_delim)
 		char data = nextc();
 		if(data == '\\')
 		{
-			data = nextc();
-			switch(data)
-			{
-			case 'n':
-				data = '\n';
-			 		break;
-			case 't':
-				data = '\t';
-				break;
-			case 'a':
-				data = '\a';
-				break;
-		 	case 'b':
-				data = '\b';
-				break;
-			case 'f':
-				data = '\f';
-				break;
-			case 'r':
-				data = '\r';
-				break;
-			case 'v':
-				data = '\v';
-				break;
-			case '\'':
-				data = '\'';
-				break;
-			case '\"':
-				data = '\"';
-				break;
-			case '\?':
-				data = '\?';
-				break;
-			case '0':
-				data = '\0';
-				break;
-			default:
-				compile_error(
-					LexProcess->cprocess,
-					"E escape character compilation error\n"
-				);
-			}
+			data = get_escaped_char(nextc());
 		}
 		str[j] = data;
 	}
@@ -498,15 +504,15 @@ Token* make_multiline_comment_token()
 		{
 			++i;
 		}
+		++i;
 		if(c == '\377')
 		{
 			compile_error(LexProcess->cprocess,"you didn't close the mutiline_comment\n");
 		}
 		else if(c == '*')
 		{
-			if(peekc() == '/')
+			if(nextc() == '/')
 			{
-				nextc();
 				++i;
 				break;
 			}
@@ -520,6 +526,8 @@ Token* make_multiline_comment_token()
 	{
 		str[j] = nextc();
 	}
+	nextc();
+	nextc();
 	return token_creat(&(Token)
 	{
 		.type = TOKEN_TYPE_COMMENT,
