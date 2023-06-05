@@ -589,6 +589,22 @@ Token* make_quote_token()
 	});
 }
 
+Token* make_special_number_token()
+{
+	Token* token = NULL;
+	Token* last_token = lexer_last_token();
+	if(last_token->llnum == 0)
+	{
+		--LexProcess->token_count;
+		token = make_spceial_number_hexadcimal();
+	}
+	else
+	{
+		compile_error(LexProcess->cprocess,"Unexpexted token\n");
+	}
+	return token
+}
+
 Token* read_next_token()
 {
 	Token* token = NULL;
