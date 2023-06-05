@@ -589,6 +589,46 @@ Token* make_quote_token()
 	});
 }
 
+bool is_hex_number(char c){
+	c = tolower(c);
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+}
+
+char* read_hex_number_str(){
+	int i = 0;
+	Pos pos_of_LexProcess = LexProcess->pos;
+	Pos pos_of_cprocess = LexProcess->cprocess->pos;
+	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
+	char c;
+	for(c = nextc();
+		is_hex_number(c);
+		c = nextc()
+	){
+		
+		++i;
+	}
+	LexProcess->pos = pos_of_LexProcess;
+	LexProcess->cprocess->pos = pos_of_cprocess;
+	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
+	char* str = calloc(i+1,sizeof(char*));
+	for(int j = 0;j < i;++j){
+		str[j] = nextc();
+	}
+	return str;
+}
+
+Token* make_spceial_number_hexadcimal(){
+	nextc();
+	//跳过“x”
+	char* number_str = read_hex_number_str();
+	unsigned long long llnum = 0;
+	llnum = strtol(number_str,0,16);
+	return token_creat(&(Token){
+		.type = TOKEN_TYPE_NUMBER,
+		.llnum = llnum
+	});
+}
+
 Token* make_special_number_token()
 {
 	Token* token = NULL;
@@ -600,9 +640,9 @@ Token* make_special_number_token()
 	}
 	else
 	{
-		compile_error(LexProcess->cprocess,"Unexpexted token\n");
+		token = read_special_token();
 	}
-	return token
+	return token;
 }
 
 Token* read_next_token()
@@ -644,6 +684,10 @@ Token* read_next_token()
 			break;
 
 		case '\377':
+			break;
+			
+		case 'x':
+			token = make_special_number_token();
 			break;
 
 		default:
