@@ -36,7 +36,11 @@ void lex_process_free(lex_process* process){
 		||
 		process->tokens[i].type
 		==
-		TOKEN_TYPE_KEYWORDS)
+		TOKEN_TYPE_KEYWORDS
+		||
+		process->tokens[i].type
+		==
+		TOKEN_TYPE_COMMENT)
 		{
 			free(process->tokens[i].sval);
 		}

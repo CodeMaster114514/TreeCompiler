@@ -90,9 +90,9 @@ static Token* token_creat(Token* _token)
 	return &tmp_token;
 }
 
-const char* read_number_str()
+char* read_number_str()
 {
-	const char* str_ret = NULL;
+	char* str_ret = NULL;
 	int i = 0;
 	Pos pos_of_Lex = LexProcess->pos;
 	Pos pos_of_compiler = LexProcess->cprocess->pos;
@@ -133,8 +133,10 @@ Token* handle_whitespace()
 
 unsigned long long read_number()
 {
-	const char* s = read_number_str();
-	return atoll(s);
+	char* s = read_number_str();
+	unsigned long long ret = atoll(s);
+	free(s);
+	return ret;
 }
 
 Token* make_number_token_for_value(unsigned long number)
@@ -217,7 +219,7 @@ static bool op_treated_as_one(char op)
 {
 	return op == '(' ||
 		op == '[' ||
-//		op == ',' ||
+		op == ',' ||
 //		op == '.' ||
 		op == '*' ||
 		op == '?' ;
@@ -617,13 +619,57 @@ char* read_hex_number_str(){
 	return str;
 }
 
-Token* make_spceial_number_hexadcimal(){
+Token* make_special_number_hexadcimal(){
 	nextc();
 	//跳过“x”
 	char* number_str = read_hex_number_str();
 	unsigned long long llnum = 0;
 	llnum = strtol(number_str,0,16);
+	free(number_str);
 	return token_creat(&(Token){
+		.type = TOKEN_TYPE_NUMBER,
+		.llnum = llnum
+	});
+}
+
+bool is_bin_number(char c)
+{
+	return c == '1' ||
+		c == '0';
+}
+
+char* read_bin_number_str()
+{
+	int i = 0;
+	Pos pos_of_LexProcess = LexProcess->pos;
+	Pos pos_of_cprocess = LexProcess->cprocess->pos;
+	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
+	char c;
+	for(c = nextc();
+		is_bin_number(c);
+		c = nextc()
+	){
+		++i;
+	}
+	LexProcess->pos = pos_of_LexProcess;
+	LexProcess->cprocess->pos = pos_of_cprocess;
+	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
+	char* str = calloc(i+1,sizeof(char*));
+	for(int j = 0;j < i;++j){
+		str[j] = nextc();
+	}
+	return str;
+}
+
+Token* make_special_number_binary()
+{
+	nextc();
+	char* number_str = read_bin_number_str();
+	unsigned long long llnum = 0;
+	llnum = strtol(number_str,0,2);
+	free(number_str);
+	return token_creat(&(Token)
+	{
 		.type = TOKEN_TYPE_NUMBER,
 		.llnum = llnum
 	});
@@ -636,7 +682,13 @@ Token* make_special_number_token()
 	if(last_token->llnum == 0)
 	{
 		--LexProcess->token_count;
-		token = make_spceial_number_hexadcimal();
+		if(peekc() == 'x'){
+			token = make_special_number_hexadcimal();
+		}else if(peekc() == 'b'){
+			token = make_special_number_binary();
+		}else{
+			compile_error(LexProcess->cprocess,"Unexpexted token\n");
+		}
 	}
 	else
 	{
@@ -686,6 +738,7 @@ Token* read_next_token()
 		case '\377':
 			break;
 			
+		case 'b':
 		case 'x':
 			token = make_special_number_token();
 			break;
