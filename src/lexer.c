@@ -3,6 +3,8 @@
 static lex_process* LexProcess;
 static Token tmp_token;
 
+bool lex_is_in_expression();
+
 char get_escaped_char(char c)
 {
 	char data;
@@ -63,6 +65,13 @@ static char nextc()
 {
 	char c = LexProcess->process_functions->next_char(LexProcess);
 	++LexProcess->pos.col;
+	if(lex_is_in_expression())
+	{
+		write(LexProcess->expression.
+			buffer_info[LexProcess->expression
+			.current_expression_count-1],
+			c);
+	}
 	if(c == '\n')
 	{
 		++LexProcess->pos.line;
@@ -86,6 +95,17 @@ static void pushc(char c)
 static Token* token_creat(Token* _token)
 {
 	memcpy(&tmp_token,_token,sizeof(Token));
+	if(lex_is_in_expression())
+	{
+		tmp_token.between_brackets =
+			get_buffer(
+				LexProcess->
+				expression.
+				buffer_info[
+				LexProcess->
+				expression.
+				current_expression_count-1]);
+	}
 	tmp_token.pos = LexProcess->pos;
 	return &tmp_token;
 }
@@ -93,6 +113,12 @@ static Token* token_creat(Token* _token)
 char* read_number_str()
 {
 	char* str_ret = NULL;
+	int count = 0;
+	if(lex_is_in_expression())
+	{
+		count = LexProcess->expression.current_expression_count;
+		LexProcess->expression.current_expression_count = 0;
+	}
 	int i = 0;
 	Pos pos_of_Lex = LexProcess->pos;
 	Pos pos_of_compiler = LexProcess->cprocess->pos;
@@ -102,6 +128,8 @@ char* read_number_str()
 		nextc();
 		++i;
 	}
+	if(count != 0)
+	LexProcess->expression.current_expression_count = count;
 	LexProcess->pos = pos_of_Lex;
 	LexProcess->cprocess->pos = pos_of_compiler;
 	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
@@ -157,6 +185,12 @@ Token* make_string_token(char start_delim,char end_delim)
 {
 	int i = 0;
 	char c = nextc();
+	int count = 0;
+	if(lex_is_in_expression())
+	{
+		count = LexProcess->expression.current_expression_count;
+		LexProcess->expression.current_expression_count = 0;
+	}
 	Pos pos_of_LexProcess = LexProcess->pos;
 	Pos pos_of_cprocess = LexProcess->cprocess->pos;
 	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
@@ -172,6 +206,8 @@ Token* make_string_token(char start_delim,char end_delim)
 		}
 		i++;
 	}
+	if(count != 0)
+	LexProcess->expression.current_expression_count = count;
 	LexProcess->pos = pos_of_LexProcess;
 	LexProcess->cprocess->pos = pos_of_cprocess;
 	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
@@ -335,8 +371,8 @@ void lex_finish_expression()
 {
 	--LexProcess->expression.current_expression_count;
 	if(LexProcess->expression.current_expression_count
-		==
-		1
+		<
+		0
 	)
 	{
 		compile_error(LexProcess->cprocess,"You can't close an expression that doesn' exist!");
@@ -409,7 +445,7 @@ Token* make_operator_or_string_token()
 Token* make_symbol_token()
 {
 	char c = nextc();
-	if(c == '(')
+	if(c == ')')
 	{
 		lex_finish_expression();
 	}
@@ -422,7 +458,12 @@ Token* make_symbol_token()
 
 Token* make_identifier_or_keyword_token()
 {
-	int i = 0;
+	int count = 0;
+	if(lex_is_in_expression())
+	{
+		count = LexProcess->expression.current_expression_count;
+		LexProcess->expression.current_expression_count = 0;
+	}int i = 0;
 	Pos pos_of_LexProcess = LexProcess->pos;
 	Pos pos_of_cprocess = LexProcess->cprocess->pos;
 	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
@@ -436,6 +477,8 @@ Token* make_identifier_or_keyword_token()
 		(c == '_');
 		c = nextc()
 	) ++i;
+	if(count != 0)
+	LexProcess->expression.current_expression_count = count;
 	LexProcess->pos = pos_of_LexProcess;
 	LexProcess->cprocess->pos = pos_of_cprocess;
 	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
@@ -476,6 +519,12 @@ Token* make_new_line_token(){
 }
 
 Token* make_one_line_comment_token(){
+	int count = 0;
+	if(lex_is_in_expression())
+	{
+		count = LexProcess->expression.current_expression_count;
+		LexProcess->expression.current_expression_count = 0;
+	}
 	int i = 0;
 	Pos pos_of_LexProcess = LexProcess->pos;
 	Pos pos_of_cprocess = LexProcess->cprocess->pos;
@@ -487,6 +536,8 @@ Token* make_one_line_comment_token(){
 	){
 		++i;
 	}
+	if(count != 0)
+	LexProcess->expression.current_expression_count = count;
 	char* str = calloc(i+1,sizeof(char));
 	LexProcess->pos = pos_of_LexProcess;
 	LexProcess->cprocess->pos = pos_of_cprocess;
@@ -502,33 +553,44 @@ Token* make_one_line_comment_token(){
 
 Token* make_multiline_comment_token()
 {
+	int count = 0;
+	if(lex_is_in_expression())
+	{
+		count = LexProcess->expression.current_expression_count;
+		LexProcess->expression.current_expression_count = 0;
+	}
 	int i = 0;
 	Pos pos_of_LexProcess = LexProcess->pos;
 	Pos pos_of_cprocess = LexProcess->cprocess->pos;
 	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
 	char c;
 	while(1){
-		for(c = nextc();
+		for(c = peekc();
 			c != '*' && c != '\377';
-			c = nextc()
+			c = peekc()
 		)
 		{
 			++i;
+			nextc();
 		}
-		++i;
 		if(c == '\377')
 		{
 			compile_error(LexProcess->cprocess,"you didn't close the mutiline_comment\n");
 		}
 		else if(c == '*')
 		{
-			if(nextc() == '/')
+			nextc();
+			++i;
+			if(peekc() == '/')
 			{
 				++i;
+				nextc();
 				break;
 			}
 		}
 	}
+	if(count != 0)
+	LexProcess->expression.current_expression_count = count;
 	LexProcess->pos = pos_of_LexProcess;
 	LexProcess->cprocess->pos = pos_of_cprocess;
 	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
@@ -537,8 +599,6 @@ Token* make_multiline_comment_token()
 	{
 		str[j] = nextc();
 	}
-	nextc();
-	nextc();
 	return token_creat(&(Token)
 	{
 		.type = TOKEN_TYPE_COMMENT,
@@ -597,6 +657,12 @@ bool is_hex_number(char c){
 }
 
 char* read_hex_number_str(){
+	int count = 0;
+	if(lex_is_in_expression())
+	{
+		count = LexProcess->expression.current_expression_count;
+		LexProcess->expression.current_expression_count = 0;
+	}
 	int i = 0;
 	Pos pos_of_LexProcess = LexProcess->pos;
 	Pos pos_of_cprocess = LexProcess->cprocess->pos;
@@ -609,6 +675,8 @@ char* read_hex_number_str(){
 		
 		++i;
 	}
+	if(count != 0)
+	LexProcess->expression.current_expression_count = count;
 	LexProcess->pos = pos_of_LexProcess;
 	LexProcess->cprocess->pos = pos_of_cprocess;
 	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);
@@ -640,7 +708,12 @@ bool is_bin_number(char c)
 
 char* read_bin_number_str()
 {
-	int i = 0;
+	int count = 0;
+	if(lex_is_in_expression())
+	{
+		count = LexProcess->expression.current_expression_count;
+		LexProcess->expression.current_expression_count = 0;
+	}int i = 0;
 	Pos pos_of_LexProcess = LexProcess->pos;
 	Pos pos_of_cprocess = LexProcess->cprocess->pos;
 	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
@@ -651,6 +724,8 @@ char* read_bin_number_str()
 	){
 		++i;
 	}
+	if(count != 0)
+	LexProcess->expression.current_expression_count = count;
 	LexProcess->pos = pos_of_LexProcess;
 	LexProcess->cprocess->pos = pos_of_cprocess;
 	fseek(LexProcess->cprocess->in_fp.fp,fp_now,SEEK_SET);

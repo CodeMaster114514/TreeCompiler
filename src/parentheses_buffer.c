@@ -22,3 +22,14 @@ void write(parentheses_buffer* buffer,char c)
 	buffer->buffer = str;
 	++buffer->buffer_len;
 }
+
+char** get_buffer(parentheses_buffer* buffer)
+{
+	return &(buffer->buffer);
+}
+
+void free_buffer(parentheses_buffer* buffer_p)
+{
+	free(buffer_p->buffer);
+	free(buffer_p);
+}

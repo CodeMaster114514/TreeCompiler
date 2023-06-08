@@ -92,7 +92,7 @@ typedef struct {
 	//如果值为ture，那么两个令牌时间是空格
 	bool whitespace;
 
-	const char* between_brackets;
+	char** between_brackets;
 } Token;
 
 enum{
@@ -183,5 +183,7 @@ bool token_is_keyword(Token*,const char*);
 //in file parenthese_buffer.c
 parentheses_buffer* creat_parentheses_buffer();
 void write(parentheses_buffer*,char);
+char** get_buffer(parentheses_buffer*);
+void free_buffer(parentheses_buffer*);
 
 #endif

@@ -20,8 +20,7 @@ void lex_process_free(lex_process* process){
 	free(process->cprocess);
 	for(int i = 0;i < process->expression.parentheses_buffer_count;++i)
 	{
-		free(process->expression.buffer_info[i]->buffer);
-		free(process->expression.buffer_info[i]);
+		free_buffer(process->expression.buffer_info[i]);
 	}
 	free(process->expression.buffer_info);
 	for(unsigned long long i = 0;i < process->token_count;++i)
