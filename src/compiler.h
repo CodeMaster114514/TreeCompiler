@@ -128,6 +128,12 @@ typedef struct {
 	int buffer_len;
 } parentheses_buffer;
 
+typedef struct {
+	char* str;
+	size_t len;
+	size_t index;
+} string_read;
+
 struct lex_process{
 	Pos pos;
 	Token* tokens;
@@ -169,13 +175,23 @@ char compile_process_next_char(lex_process*);
 char compile_process_peek_char(lex_process*);
 void compile_process_push_char(lex_process*,char);
 
+//in file lex_process.c
 lex_process* lex_process_create(
 	compile_process*,
 	lex_process_functions*,
 	void*
 );
 void lex_process_free(lex_process*);
+
+//in file lexer.c
 int lex(lex_process*);
+/*
+ * 输入字符串，返回构建的token
+ */
+lex_process* lex_token_build_for_string(
+	compile_process*,
+	const char*
+);
 
 //in file token.c
 bool token_is_keyword(Token*,const char*);

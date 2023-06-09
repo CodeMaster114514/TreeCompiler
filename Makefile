@@ -1,7 +1,11 @@
-METHOR= debug
-OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/parentheses_buffer.o
+METHOR= releas
+OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o
 INCLUDE= -I./src/
 CODE_LOCATION=./src/
+LIB_FILE= ./build/libparentheses_buffer.so
+LIB= -L./build -lparentheses_buffer
+LIB_INSTALL= /usr/lib/
+MAIN_INSTALL= /usr/bin/
 
 ifeq ($(METHOR),debug)
 	COMPILE_METHOR= -g
@@ -11,8 +15,8 @@ else
 	COMPILE_METHOR= drvrvgg#乱码使其报错
 endif
 
-all: $(OBJECTS)
-	gcc $(CODE_LOCATION)main.c ${INCLUDE} ${OBJECTS} $(COMPILE_METHOR) -o main
+main: $(OBJECTS) $(LIB_FILE)
+	gcc $(CODE_LOCATION)main.c ${INCLUDE} ${OBJECTS} $(COMPILE_METHOR) $(LIB) -o main
 
 ./build/compiler.o: $(CODE_LOCATION)./compiler.c
 	gcc $(CODE_LOCATION)./compiler.c ${INCLUDE} $(COMPILE_METHOR) -o ./build/compiler.o -c
@@ -29,9 +33,13 @@ all: $(OBJECTS)
 ./build/token.o: $(CODE_LOCATION)./token.c
 	gcc $(CODE_LOCATION)./token.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/token.o -c
 
-./build/parentheses_buffer.o: $(CODE_LOCATION)./parentheses_buffer.c
-	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/parentheses_buffer.o -c
+./build/libparentheses_buffer.so: $(CODE_LOCATION)./parentheses_buffer.c
+	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -fPIC -shared -o ./build/libparentheses_buffer.so
 
 clear:
-	rm ${OBJECTS} -rf
+	rm ${OBJECTS} ${LIB_FILE} -rf
 	rm ./main
+
+install: main
+	cp main $(MAIN_INSTALL)
+	cp $(LIB_FILE) $(LIB_INSTALL)

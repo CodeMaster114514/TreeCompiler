@@ -857,3 +857,55 @@ int lex(lex_process* process){
 	}
 	return LEX_ANALYSIS_ALL_OK;
 }
+
+char string_nextc(lex_process* process)
+{
+	string_read* p = process->private;
+	return p->str[p->index++];
+}
+char string_peekc(lex_process* process)
+{
+	return ((string_read*) process->private)->str[((string_read*) process->private)->index];
+}
+void string_pushc(lex_process* process,char c)
+{
+	string_read* p = process->private;
+	p->str[--p->index] = c; 
+}
+
+lex_process_functions functions_of_string =
+{
+	.next_char = string_nextc,
+	.peek_char = string_peekc,
+	.push_char = string_pushc
+};
+
+lex_process* lex_token_build_for_string(compile_process* cprocess,const char* str)
+{
+	size_t len = strlen(str);
+	char* str_new = calloc(len,sizeof(char));
+	for(size_t i = 0;i < len;++i)
+	{
+		str_new[i] = str[i];
+	}
+	string_read* string_read_p = calloc(1,sizeof(string_read));
+	string_read_p->str = str_new;
+	string_read_p->len = len;
+	lex_process* process = lex_process_create(cprocess,&functions_of_string,string_read_p);
+	if(!process)
+	{
+		free(str_new);
+		free(string_read_p);
+		return NULL;
+	}
+	if(lex(process) != LEX_ANALYSIS_ALL_OK)
+	{
+		lex_process_free(process);
+		free(str_new);
+		free(string_read_p);
+		return NULL;
+	}
+	free(str_new);
+	string_read_p->str = str;
+	return process;
+}

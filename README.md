@@ -1,39 +1,14 @@
 # TreeCompiler
 The HongMuOS’s C compiler
 
-##更新日志(update the log)
+## 更新日志(update the log)
+
+创建函数lex_token_build_for_string
+
+调用示例
+
+```C
+lex_process* process = lex_token_build_for_string(compile_process,"int a = 0xb8000;")//compile_process已提前创建
 ```
-Token* make_symbol_token()
-{
-	char c = nextc();
-	if(c == ')')
-	{
-		lex_finish_expression();
-	}
-	return token_creat(&(Token)
-	{
-		.type = TOKEN_TYPE_SYMBOL,
-		.cval = c
-	});
-}
-```
-to
-```
-Token* make_symbol_token()
-{
-	char c = nextc();
-	if(c == ')')
-	{
-		lex_finish_expression();
-	}
-	return token_creat(&(Token)
-	{
-		.type = TOKEN_TYPE_SYMBOL,
-		.cval = c
-	});
-}
-```
----
-修复多行注释解析的bug
----
-添加在括号内的内容写入缓冲区
+
+将parentheses_buffer.c编译后的内容移动到动态链接库中

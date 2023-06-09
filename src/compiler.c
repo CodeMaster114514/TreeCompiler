@@ -79,12 +79,16 @@ int compile_file(
 		NULL
 	);
 	if(!lex_process){
+		fclose(cprocess->in_fp.fp);
+		fclose(cprocess->out_fp);
 		free(cprocess);
 		return COMPILER_FAILED_WITH_ERROR;
 	}
 	process = lex_process;
 	if(lex(lex_process) != LEX_ANALYSIS_ALL_OK){
-		free(cprocess);
+		fclose(cprocess->in_fp.fp);
+		fclose(cprocess->out_fp);
+		lex_process_free(lex_process);
 		return COMPILER_FAILED_WITH_ERROR;
 	}
 
