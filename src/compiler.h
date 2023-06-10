@@ -75,6 +75,13 @@ enum {
 	TOKEN_TYPE_NEWLINE
 };
 
+enum{
+	NUMEBR_TYPE_NORMAL,
+	NUMBER_TYPE_LONG,
+	NUMBER_TYPE_FLOAT,
+	NUMBER_TYPE_DOUBLE
+};
+
 typedef struct {
 	int type;
 	int flags;
@@ -88,6 +95,10 @@ typedef struct {
 		unsigned long long llnum;
 		void* any;
 	};
+
+	struct {
+		int type;
+	} num;
 
 	//如果值为ture，那么两个令牌时间是空格
 	bool whitespace;
