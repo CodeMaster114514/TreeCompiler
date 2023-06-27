@@ -34,7 +34,7 @@ main: $(OBJECTS) $(LIB_FILE)
 	gcc $(CODE_LOCATION)./token.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/token.o -c
 
 ./build/mound.o: $(CODE_LOCATION)./mound.c
-	gcc $(CODE_LOCATION)./mound.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/mound.o
+	gcc $(CODE_LOCATION)./mound.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/mound.o -c
 
 ./build/libparentheses_buffer.so: $(CODE_LOCATION)./parentheses_buffer.c
 	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -fPIC -shared -o ./build/libparentheses_buffer.so
