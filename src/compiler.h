@@ -56,6 +56,7 @@ typedef struct {
 	case '}': \
 	case ':': \
 	case ';': \
+	case '#': \
 	case '\\':\
 	case ')': \
 	case ']'
