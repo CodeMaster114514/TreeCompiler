@@ -9,6 +9,8 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include "mound.h"
+
 typedef struct {
 	int line;
 	int col;
