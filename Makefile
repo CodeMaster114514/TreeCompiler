@@ -1,4 +1,4 @@
-METHOR= releas
+METHOR= debug
 OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/mound.o
 INCLUDE= -I./src/
 CODE_LOCATION=./src/
