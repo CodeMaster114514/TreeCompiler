@@ -8,7 +8,8 @@ mound* creat_mound(size_t len)
     mound* ret = calloc(1,sizeof(mound));
     ret->buffer = calloc(20,len);
     ret->len = len;
-    ret->count = 20;
+    ret->place = 20;
+    ret->count = 0;
     ret->write_p = 0;
     return ret;
 }
@@ -47,4 +48,13 @@ void* pop(mound* this){
 
 void set(mound* this,size_t p,void* data){
     memcpy(this->buffer + p*this->len,data,this->len);
+}
+
+size_t get_count(mound* this){
+    return this->count;
+}
+
+void free_mound(mound* this){
+    free(this->buffer);
+    free(this);
 }
