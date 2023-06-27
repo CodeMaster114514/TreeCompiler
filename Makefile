@@ -1,5 +1,5 @@
 METHOR= releas
-OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o
+OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/mound.o
 INCLUDE= -I./src/
 CODE_LOCATION=./src/
 LIB_FILE= ./build/libparentheses_buffer.so
@@ -32,6 +32,9 @@ main: $(OBJECTS) $(LIB_FILE)
 
 ./build/token.o: $(CODE_LOCATION)./token.c
 	gcc $(CODE_LOCATION)./token.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/token.o -c
+
+./build/mound.o: $(CODE_LOCATION)./mound.c
+	gcc $(CODE_LOCATION)./mound.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/mound.o
 
 ./build/libparentheses_buffer.so: $(CODE_LOCATION)./parentheses_buffer.c
 	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -fPIC -shared -o ./build/libparentheses_buffer.so
