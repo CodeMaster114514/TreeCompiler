@@ -13,6 +13,15 @@ mound* creat_mound(size_t len)
     return ret;
 }
 
+mound* creat_mound_with_data(void* data,size_t len,size_t count){
+    mound* ret = calloc(1,sizeof(mound));
+    ret->buffer = calloc(count,len);
+    ret->len = len;
+    ret->count = count;
+    ret->write_p = 0;
+    return ret;
+}
+
 void* read(mound* this,size_t p)
 {
     void* ret = calloc(1,this->len);
