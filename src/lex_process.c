@@ -41,7 +41,7 @@ void lex_process_free(lex_process* process){
 		==
 		TOKEN_TYPE_COMMENT)
 		{
-			free(process->tokens[i].sval);
+			free(the->sval);
 		}
 		free(the);
 	}
