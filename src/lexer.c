@@ -832,35 +832,19 @@ Token *read_next_token()
 	return token;
 }
 
-void add_token(Token **tokens_in, Token *token, int token_count)
-{
-	Token *tokens = tokens_in[0];
-	Token *tokens_next = calloc(token_count + 1, sizeof(Token));
-	for (int i = 0; i < token_count; i++)
-	{
-		tokens_next[i] = tokens[i];
-	}
-	free(tokens);
-	tokens = tokens_next;
-	tokens_in[0] = tokens;
-	tokens[token_count] = token[0];
-}
-
 int lex(lex_process *process)
 {
 	process->expression.current_expression_count = 0;
 	process->expression.buffer_info = NULL;
 	LexProcess = process;
 	Token *token = read_next_token();
-	process->tokens[0] = token[0];
-	++process->token_count;
+	push(process->tokens,token);
 	while (token)
 	{
 		token = read_next_token();
 		if (token)
 		{
-			add_token(&process->tokens, token, process->token_count);
-			++process->token_count;
+			push(process->tokens,token);
 		}
 	}
 	return LEX_ANALYSIS_ALL_OK;
