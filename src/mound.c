@@ -35,7 +35,7 @@ void push(mound* this,void* data){
         this->buffer = realloc(this->buffer,this->write_p*this->len);
         ++this->count;
     }
-    memcpy(this->buffer + write*len,data,this->len);
+    memcpy(this->buffer + write*this->len,data,this->len);
 }
 
 void* pop(mound* this){
