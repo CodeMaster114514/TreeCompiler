@@ -150,8 +150,7 @@ typedef struct {
 
 struct lex_process{
 	Pos pos;
-	Token* tokens;
-	unsigned long long token_count;
+	mound* tokens;
 	compile_process* cprocess;
 
 	struct {
