@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "compiler.h"
 
-int main(int argc,char** args){
+int main(int argc,char* args[]){
     if(argc < 3){
         goto error;
     }
