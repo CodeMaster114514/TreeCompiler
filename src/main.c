@@ -6,7 +6,7 @@ int main(int argc,char** args){
         goto error;
     }
 //	printf("hello world!\n");
-	int res = compile_file("./test.c","./test",0);
+	int res = compile_file(args[1],args[2],0);
 	if(res == COMPILER_FAILED_WITH_ERROR){
 error:
 		printf("Compile failed or compile error\n");
