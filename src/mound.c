@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "mound.h"
+
+mound* creat_mound(size_t len)
+{
+    mound* ret = calloc(1,sizeof(mound));
+    ret->buffer = calloc(20,len);
+    ret->len = len;
+    ret->count = 20;
+    ret->write_p = 0;
+    return ret;
+}
+
+void* read(mound* this,size_t p)
+{
+    void* ret = calloc(1,this->len);
+    memcpy(ret,this->buffer + this->len*p,this->len);
+    return ret;
+}
+
+void push(mound* this,void* data){
+    size_t write = this->write_p++;
+    if(this->write_p >= this->count){
+        this->buffer = realloc(this->buffer,this->write_p*this->len);
+        ++this->count;
+    }
+    memcpy(this->buffer + write*len,data,this->len);
+}
+
+void* pop(mound* this){
+    void* ret = calloc(1,this->len);
+    memcpy(ret,this->buffer + (this->write_p - 1) * this->len,this->len);
+    --this->write_p;
+    return ret;
+}
+
+void set(mound* this,size_t p,void* data){
+    memcpy(this->buffer + p*this->len,data,this->len);
+}
