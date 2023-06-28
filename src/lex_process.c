@@ -22,7 +22,7 @@ void lex_process_free(lex_process* process){
 		free_buffer(process->expression.buffer_info[i]);
 	}
 	free(process->expression.buffer_info);
-	size_t count = get_count(process->tokens)
+	size_t count = get_count(process->tokens);
 	for(size_t i = 0;i < count;++i)
 	{
 	    Token* the = read(process->tokens,i);

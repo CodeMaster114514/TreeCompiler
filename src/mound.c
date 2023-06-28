@@ -3,7 +3,7 @@
 #include <string.h>
 #include "mound.h"
 
-mound* creat_mound(size_t len)
+mound* create_mound(size_t len)
 {
     mound* ret = calloc(1,sizeof(mound));
     ret->buffer = calloc(20,len);
@@ -14,7 +14,7 @@ mound* creat_mound(size_t len)
     return ret;
 }
 
-mound* creat_mound_with_data(void* data,size_t len,size_t count){
+mound* create_mound_with_data(void* data,size_t len,size_t count){
     mound* ret = calloc(1,sizeof(mound));
     ret->buffer = calloc(count,len);
     ret->len = len;
@@ -32,11 +32,12 @@ void* read(mound* this,size_t p)
 
 void push(mound* this,void* data){
     size_t write = this->write_p++;
-    if(this->write_p >= this->count){
+    if(this->write_p >= this->place){
         this->buffer = realloc(this->buffer,this->write_p*this->len);
-        ++this->count;
+        ++this->place;
     }
     memcpy(this->buffer + write*this->len,data,this->len);
+    ++this->count;
     free(data);
 }
 

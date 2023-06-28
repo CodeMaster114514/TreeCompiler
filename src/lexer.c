@@ -67,9 +67,7 @@ static char nextc()
 	if (lex_is_in_expression())
 	{
 		write(LexProcess->expression.buffer_info[LexProcess->expression
-													 .current_expression_count -
-												 1],
-			  c);
+		.parentheses_buffer_count - 1],c);
 	}
 	if (c == '\n')
 	{
@@ -139,7 +137,7 @@ char *read_number_str()
 
 Token *lexer_last_token()
 {
-	return pop(process->tokens);
+	return pop(LexProcess->tokens);
 }
 
 Token *handle_whitespace()
@@ -149,7 +147,7 @@ Token *handle_whitespace()
 	{
 		token->whitespace = true;
 	}
-	push(process->tokens,token);
+	push(LexProcess->tokens,token);
 	nextc();
 	return read_next_token();
 }
@@ -367,7 +365,7 @@ void lex_new_expression()
 		}
 		else
 		{
-			parentheses_buffer **buffer = calloc(LexProcess->expression.parentheses_buffer_count, sizeof(parentheses_buffer *));
+			parentheses_buffer **buffer = calloc(LexProcess->expression.parentheses_buffer_count + 1, sizeof(parentheses_buffer *));
 			for (int i = 0; i < LexProcess->expression.parentheses_buffer_count; ++i)
 			{
 				buffer[i] = LexProcess->expression.buffer_info[i];
@@ -435,7 +433,7 @@ Token *make_operator_or_string_token()
 	char c = peekc();
 	if (c == '<')
 	{
-		Token* token = read(process->tokens,get_count(process->tokens));
+		Token* token = read(LexProcess->tokens,get_count(LexProcess->tokens));
 		if (token_is_keyword(token, "include"))
 		{
 			return make_string_token('<', '>');
@@ -759,7 +757,7 @@ Token *make_special_number_token()
 	Token *last_token = lexer_last_token();
 	if (last_token->llnum == 0)
 	{
-		free(pop(process->tokens));
+		free(pop(LexProcess->tokens));
 		if (peekc() == 'x')
 		{
 			token = make_special_number_hexadcimal();
@@ -834,19 +832,26 @@ Token *read_next_token()
 	return token;
 }
 
+void push_token(Token* token)
+{
+	Token* data = calloc(1,sizeof(Token));
+	memcpy(data,token,sizeof(Token));
+	push(LexProcess->tokens,data);
+}
+
 int lex(lex_process *process)
 {
 	process->expression.current_expression_count = 0;
 	process->expression.buffer_info = NULL;
 	LexProcess = process;
 	Token *token = read_next_token();
-	push(process->tokens,token);
+	push_token(token);
 	while (token)
 	{
 		token = read_next_token();
 		if (token)
 		{
-			push(process->tokens,token);
+			push_token(token);
 		}
 	}
 	return LEX_ANALYSIS_ALL_OK;
