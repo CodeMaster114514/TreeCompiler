@@ -139,7 +139,7 @@ char *read_number_str()
 
 Token *lexer_last_token()
 {
-	return &LexProcess->tokens[LexProcess->token_count - 1];
+	return pop(process->tokens);
 }
 
 Token *handle_whitespace()
@@ -149,6 +149,7 @@ Token *handle_whitespace()
 	{
 		token->whitespace = true;
 	}
+	push(process->tokens,token);
 	nextc();
 	return read_next_token();
 }
@@ -434,11 +435,12 @@ Token *make_operator_or_string_token()
 	char c = peekc();
 	if (c == '<')
 	{
-		Token *token = &LexProcess->tokens[LexProcess->token_count - 1];
+		Token* token = read(process->tokens,get_count(process->tokens));
 		if (token_is_keyword(token, "include"))
 		{
 			return make_string_token('<', '>');
 		}
+		free(token);
 	}
 	Token *token = token_creat(&(Token){
 		.type = TOKEN_TYPE_OPERATOR,
@@ -757,7 +759,7 @@ Token *make_special_number_token()
 	Token *last_token = lexer_last_token();
 	if (last_token->llnum == 0)
 	{
-		--LexProcess->token_count;
+		free(pop(process->tokens));
 		if (peekc() == 'x')
 		{
 			token = make_special_number_hexadcimal();
