@@ -122,7 +122,76 @@ typedef struct {
 		const char* file_path;
 	} in_fp;
 	FILE* out_fp;
+
+	mound* tokens;
+	mound* node;
+	mound* node_tree;
 } compile_process;
+
+enum
+{
+	PARSE_ALL_OK,
+	PARSE_GENERAL_ERROR
+};
+
+enum
+{
+	NODE_TYPE_EXPRESSION,
+	NODE_TYPE_EXPRESSION_PARENTHESES,
+	NODE_TYPE_NUMBER,
+	NODE_TYPE_IDENTIFIER,
+	NODE_TYPE_STRING,
+	NODE_TYPE_VARIABLE,
+	NODE_TYPE_VARIABLE_LIST,
+	NODE_TYPE_FUNCTION,
+	NODE_TYPE_BODY,
+	NODE_TYPE_STATEMENT_RETURN,
+	NODE_TYPE_STATEMENT_IF,
+	NODE_TYPE_STATEMENT_ELSE,
+	NODE_TYPE_STATEMENT_WHILE,
+	NODE_TYPE_STATEMENT_DO_WHILE,
+	NODE_TYPE_STATEMENT_BREAK,
+	NODE_TYPE_STATEMENT_CONTINUE,
+	NODE_TYPE_STATEMENT_SWITCH,
+	NODE_TYPE_STATEMENT_CASE,
+	NODE_TYPE_STATEMENT_DEFAULT,
+	NODE_TYPE_STATEMENT_GOTO,
+
+	NODE_TYPE_UNARY,
+	NODE_TYPE_TENARY,
+	NODE_TYPE_LABEL,
+	NODE_TYPE_STRUCT,
+	NODE_TYPE_UNION,
+	NODE_TYPE_BRACKET,
+	NODE_TYPE_CAST,
+	NODE_TYPE_BLANK
+};
+
+struct Node;
+typedef struct Node Node;
+
+struct Node
+{
+	int type;
+	int flag;
+
+	Pos pos;
+
+	struct node_binded
+	{
+		Node* owner;
+		Node* function;
+	} binded;
+
+	union
+	{
+		char cavl;
+		char* savl;
+		unsigned int inum;
+		unsigned long lnum;
+		unsigned long long llnum;
+	};
+};
 
 struct lex_process;
 typedef struct lex_process lex_process;
@@ -174,6 +243,8 @@ compile_process* compile_process_create(
 	int
 );
 
+void free_compile_process(compile_process*);
+
 void compile_error(
 	compile_process*,
 	const char*,
@@ -215,4 +286,6 @@ void write(parentheses_buffer*,char);
 char** get_buffer(parentheses_buffer*);
 void free_buffer(parentheses_buffer*);
 
+//in file parser.c
+int parse(compile_process*);
 #endif

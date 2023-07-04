@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+#include <stdbool.h>
 #include "mound.h"
 
 mound* create_mound(size_t len)
@@ -19,15 +21,15 @@ mound* create_mound_with_data(void* data,size_t len,size_t count){
     ret->buffer = calloc(count,len);
     ret->len = len;
     ret->count = count;
+    ret->peek = 0;
     ret->write_p = 0;
+    free(data);
     return ret;
 }
 
 void* read(mound* this,size_t p)
 {
-    void* ret = calloc(1,this->len);
-    memcpy(ret,this->buffer + this->len*p,this->len);
-    return ret;
+    return (void*) (this->buffer + p *this->len);
 }
 
 void push(mound* this,void* data){
@@ -38,19 +40,28 @@ void push(mound* this,void* data){
     }
     memcpy(this->buffer + write*this->len,data,this->len);
     ++this->count;
-    free(data);
 }
 
-void* pop(mound* this){
-    void* ret = calloc(1,this->len);
-    memcpy(ret,this->buffer + (this->write_p - 1) * this->len,this->len);
+bool noCross(mound* this)
+{
+	return (this->peek >= 0 && this->write_p >= 0);
+}
+
+void pop(mound* this){
+    --this->count;
     --this->write_p;
-    return ret;
+    --this->peek;
+    assert(noCross(this));
 }
 
-void set(mound* this,size_t p,void* data){
-    memcpy(this->buffer + p*this->len,data,this->len);
-    free(data);
+void set_peek(mound* this,size_t p){
+    if(p > this->peek)
+    {
+	    this->peek = get_count(this) - 1;
+    }else
+    {
+	    this->peek = p;
+    }
 }
 
 size_t get_count(mound* this){
@@ -60,4 +71,19 @@ size_t get_count(mound* this){
 void free_mound(mound* this){
     free(this->buffer);
     free(this);
+}
+
+void* peek(mound* this)
+{
+	return (void*) (this->buffer + this->peek * this->len);
+}
+
+void* last_data(mound* this)
+{
+	return (void*) (this->buffer + (this->count-1) * this->len);
+}
+
+bool isEmpty(mound* this)
+{
+	return this->count == 0;
 }

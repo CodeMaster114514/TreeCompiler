@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include "compiler.h"
 
-int main(int argc,char* args[]){
-    if(argc < 3){
-        goto error;
-    }
+int main(int argc,char* args[])
+{
+	if(argc < 2){
+		goto error;
+	}
 //	printf("hello world!\n");
 	int res = compile_file(args[1],args[2],0);
 	if(res == COMPILER_FAILED_WITH_ERROR){

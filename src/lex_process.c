@@ -16,7 +16,7 @@ lex_process* lex_process_create(
 }
 
 void lex_process_free(lex_process* process){
-	free(process->cprocess);
+	//free(process->cprocess);
 	for(int i = 0;i < process->expression.parentheses_buffer_count;++i)
 	{
 		free_buffer(process->expression.buffer_info[i]);
@@ -44,7 +44,6 @@ void lex_process_free(lex_process* process){
 		{
 			free(the->sval);
 		}
-		free(the);
 	}
 	free_mound(process->tokens);
 	if(!process->private)

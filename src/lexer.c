@@ -137,7 +137,9 @@ char *read_number_str()
 
 Token *lexer_last_token()
 {
-	return pop(LexProcess->tokens);
+	Token* token = last_data(LexProcess->tokens);
+	pop(LexProcess->tokens);
+	return token;
 }
 
 Token *handle_whitespace()
@@ -433,12 +435,11 @@ Token *make_operator_or_string_token()
 	char c = peekc();
 	if (c == '<')
 	{
-		Token* token = read(LexProcess->tokens,get_count(LexProcess->tokens));
+		Token* token = last_data(LexProcess->tokens);
 		if (token_is_keyword(token, "include"))
 		{
 			return make_string_token('<', '>');
 		}
-		free(token);
 	}
 	Token *token = token_creat(&(Token){
 		.type = TOKEN_TYPE_OPERATOR,
@@ -757,7 +758,7 @@ Token *make_special_number_token()
 	Token *last_token = lexer_last_token();
 	if (last_token->llnum == 0)
 	{
-		free(pop(LexProcess->tokens));
+		pop(LexProcess->tokens);
 		if (peekc() == 'x')
 		{
 			token = make_special_number_hexadcimal();
@@ -832,26 +833,19 @@ Token *read_next_token()
 	return token;
 }
 
-void push_token(Token* token)
-{
-	Token* data = calloc(1,sizeof(Token));
-	memcpy(data,token,sizeof(Token));
-	push(LexProcess->tokens,data);
-}
-
 int lex(lex_process *process)
 {
 	process->expression.current_expression_count = 0;
 	process->expression.buffer_info = NULL;
 	LexProcess = process;
 	Token *token = read_next_token();
-	push_token(token);
+	push(LexProcess->tokens,token);
 	while (token)
 	{
 		token = read_next_token();
 		if (token)
 		{
-			push_token(token);
+			push(LexProcess->tokens,token);
 		}
 	}
 	return LEX_ANALYSIS_ALL_OK;

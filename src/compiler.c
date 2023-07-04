@@ -10,8 +10,7 @@ lex_process* process;
 
 void freeAll()
 {
-	fclose(process->cprocess->in_fp.fp);
-	fclose(process->cprocess->out_fp);
+	free_compile_process(process->cprocess);
 	lex_process_free(process);
 }
 
@@ -79,21 +78,23 @@ int compile_file(
 		NULL
 	);
 	if(!lex_process){
-		fclose(cprocess->in_fp.fp);
-		fclose(cprocess->out_fp);
-		free(cprocess);
+		free_compile_process(cprocess);
 		return COMPILER_FAILED_WITH_ERROR;
 	}
 	process = lex_process;
 	if(lex(lex_process) != LEX_ANALYSIS_ALL_OK){
-		fclose(cprocess->in_fp.fp);
-		fclose(cprocess->out_fp);
+		free_compile_process(cprocess);
 		lex_process_free(lex_process);
 		return COMPILER_FAILED_WITH_ERROR;
 	}
+	cprocess->tokens = lex_process->tokens;
 
-	fclose(cprocess->in_fp.fp);
-	fclose(cprocess->out_fp);
+	if(parse(cprocess) != PARSE_ALL_OK)
+	{
+		return COMPILER_FAILED_WITH_ERROR;
+	}
+
+	free_compile_process(cprocess);
 	lex_process_free(lex_process);
 	return COMPILER_FILE_COMPILE_OK;
 }

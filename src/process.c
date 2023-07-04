@@ -22,7 +22,18 @@ compile_process* compile_process_create(
 	process->out_fp = output;
 	process->pos.line = 1;
 	process->pos.col = 1;
+	process->node = create_mound(sizeof(Node*));
+	process->node_tree = create_mound(sizeof(Node*));
 	return process;
+}
+
+void free_compile_process(compile_process* process)
+{
+	fclose(process->in_fp.fp);
+	if(process->out_fp != NULL) fclose(process->out_fp);
+	free_mound(process->node);
+	free_mound(process->node_tree);
+	free(process);
 }
 
 char compile_process_next_char(lex_process* lex_process){
