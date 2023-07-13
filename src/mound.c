@@ -78,6 +78,13 @@ void* peek(mound* this)
 	return (void*) (this->buffer + this->peek * this->len);
 }
 
+void* next(mound* this)
+{
+	void* data = peek(this);
+	++this->peek;
+	return data;
+}
+
 void* last_data(mound* this)
 {
 	return (void*) (this->buffer + (this->count-1) * this->len);

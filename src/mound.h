@@ -15,5 +15,7 @@ void pop(mound* this);
 void set_peek(mound* this,size_t p);
 size_t get_count(mound* this);
 void free_mound(mound* this);
+void* peek(mound* this);
+void* next(mound* this);
 void* last_data(mound* this);
 bool isEmpty(mound* this);

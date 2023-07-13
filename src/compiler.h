@@ -279,6 +279,9 @@ lex_process* lex_token_build_for_string(
 
 //in file token.c
 bool token_is_keyword(Token*,const char*);
+bool tolen_is_symbol(Token*,char);
+bool token_is_nl_or_comment_or_new_line(Token*);
+
 
 //in file parenthese_buffer.c
 parentheses_buffer* creat_parentheses_buffer();

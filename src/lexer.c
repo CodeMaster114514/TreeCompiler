@@ -96,7 +96,7 @@ static Token *token_creat(Token *_token)
 	{
 		tmp_token.between_brackets =
 			get_buffer(
-				LexProcess->expression.buffer_info[LexProcess->expression.current_expression_count - 1]);
+				LexProcess->expression.buffer_info[LexProcess->expression.parentheses_buffer_count - 1]);
 	}
 	tmp_token.pos = LexProcess->pos;
 	return &tmp_token;
