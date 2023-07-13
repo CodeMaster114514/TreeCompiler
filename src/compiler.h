@@ -11,62 +11,65 @@
 
 #include "mound.h"
 
-typedef struct {
+typedef struct
+{
 	int line;
 	int col;
-	const char* filename;
+	const char *filename;
 } Pos;
 
-#define S_EQ(str0,str1) \
-	(str0 && str1 && (strcmp(str0,str1) == 0))
+#define S_EQ(str0, str1) \
+	(str0 && str1 && (strcmp(str0, str1) == 0))
 
 #define NUMERIC_CASE \
-	case '0': \
-	case '1': \
-	case '2': \
-	case '3': \
-	case '4': \
-	case '5': \
-	case '6': \
-	case '7': \
-	case '8': \
+	case '0':        \
+	case '1':        \
+	case '2':        \
+	case '3':        \
+	case '4':        \
+	case '5':        \
+	case '6':        \
+	case '7':        \
+	case '8':        \
 	case '9'
 
 #define OPERATOR_CASE_EXCLUDING_DIVISION \
-	case '+': \
-	case '-': \
-	case '*': \
-	case '/': \
-	case '<': \
-	case '>': \
-	case '%': \
-	case '^': \
-	case '!': \
-	case '=': \
-	case '~': \
-	case '|': \
-	case '(': \
-	case '[': \
-	case ',': \
-	case '.': \
+	case '+':                            \
+	case '-':                            \
+	case '*':                            \
+	case '/':                            \
+	case '<':                            \
+	case '>':                            \
+	case '%':                            \
+	case '^':                            \
+	case '!':                            \
+	case '=':                            \
+	case '~':                            \
+	case '|':                            \
+	case '(':                            \
+	case '[':                            \
+	case ',':                            \
+	case '.':                            \
 	case '?'
 
 #define SYMBOL_CASE \
-	case '{': \
-	case '}': \
-	case ':': \
-	case ';': \
-	case '#': \
-	case '\\':\
-	case ')': \
+	case '{':       \
+	case '}':       \
+	case ':':       \
+	case ';':       \
+	case '#':       \
+	case '\\':      \
+	case ')':       \
 	case ']'
 
-enum {
+enum
+{
 	LEX_ANALYSIS_ALL_OK,
 	LEX_ANALYSIS_INPUT_ERROR
 };
 
-enum {
+enum
+{
 	TOKEN_TYPE_IDENTIFIER,
 	TOKEN_TYPE_KEYWORDS,
 	TOKEN_TYPE_OPERATOR,
@@ -78,54 +81,61 @@ enum {
 	TOKEN_TYPE_NEWLINE
 };
 
-enum{
+enum
+{
 	NUMEBR_TYPE_NORMAL,
 	NUMBER_TYPE_LONG,
 	NUMBER_TYPE_FLOAT,
 	NUMBER_TYPE_DOUBLE
 };
 
-typedef struct {
+typedef struct
+{
 	int type;
 	int flags;
 	Pos pos;
 
-	union {
+	union
+	{
 		char cval;
-		char* sval;
+		char *sval;
 		unsigned int inum;
 		unsigned long lnum;
 		unsigned long long llnum;
-		void* any;
+		void *any;
 	};
 
-	struct {
+	struct
+	{
 		int type;
 	} num;
 
-	//如果值为ture，那么两个令牌时间是空格
+	// 如果值为ture，那么两个令牌时间是空格
 	bool whitespace;
 
-	char** between_brackets;
+	char **between_brackets;
 } Token;
 
-enum{
+enum
+{
 	COMPILER_FAILED_WITH_ERROR,
 	COMPILER_FILE_COMPILE_OK
 };
 
-typedef struct {
+typedef struct
+{
 	int flags;
 	Pos pos;
-	struct compile_process_input_file {
-		FILE* fp;
-		const char* file_path;
+	struct compile_process_input_file
+	{
+		FILE *fp;
+		const char *file_path;
 	} in_fp;
-	FILE* out_fp;
+	FILE *out_fp;
 
-	mound* tokens;
-	mound* node;
-	mound* node_tree;
+	mound *tokens;
+	mound *node;
+	mound *node_tree;
 } compile_process;
 
 enum
@@ -179,14 +189,14 @@ struct Node
 
 	struct node_binded
 	{
-		Node* owner;
-		Node* function;
+		Node *owner;
+		Node *function;
 	} binded;
 
 	union
 	{
 		char cavl;
-		char* savl;
+		char *savl;
 		unsigned int inum;
 		unsigned long lnum;
 		unsigned long long llnum;
@@ -196,99 +206,105 @@ struct Node
 struct lex_process;
 typedef struct lex_process lex_process;
 
-typedef char (*LEX_PROCESS_NEXT_CHAR)(lex_process* process);
-typedef char (*LEX_PROCESS_PEEK_CHAR)(lex_process* process);
-typedef void (*LEX_PROCESS_PUSH_CHAR)(lex_process* process,char c);
+typedef char (*LEX_PROCESS_NEXT_CHAR)(lex_process *process);
+typedef char (*LEX_PROCESS_PEEK_CHAR)(lex_process *process);
+typedef void (*LEX_PROCESS_PUSH_CHAR)(lex_process *process, char c);
 
-typedef struct {
+typedef struct
+{
 	LEX_PROCESS_NEXT_CHAR next_char;
 	LEX_PROCESS_PEEK_CHAR peek_char;
 	LEX_PROCESS_PUSH_CHAR push_char;
 } lex_process_functions;
 
-typedef struct {
-	char* buffer;
+typedef struct
+{
+	char *buffer;
 	int buffer_len;
 } parentheses_buffer;
 
-typedef struct {
-	char* str;
+typedef struct
+{
+	char *str;
 	size_t len;
 	size_t index;
 } string_read;
 
-struct lex_process{
+struct lex_process
+{
 	Pos pos;
-	mound* tokens;
-	compile_process* cprocess;
+	mound *tokens;
+	compile_process *cprocess;
 
-	struct {
+	struct
+	{
 		int current_expression_count,
-		    parentheses_buffer_count;
-		parentheses_buffer** buffer_info;
+			parentheses_buffer_count;
+		parentheses_buffer **buffer_info;
 	} expression;
-	lex_process_functions* process_functions;
-	void* private;
+	lex_process_functions *process_functions;
+	void *private;
 };
 
 int compile_file(
-	const char*,
-	const char*,
-	int
-);
+	const char *,
+	const char *,
+	int);
 
-compile_process* compile_process_create(
-	const char*,
-	const char*,
-	int
-);
+compile_process *compile_process_create(
+	const char *,
+	const char *,
+	int);
 
-void free_compile_process(compile_process*);
+void free_compile_process(compile_process *);
 
 void compile_error(
-	compile_process*,
-	const char*,
-	...
-);
+	compile_process *,
+	const char *,
+	...);
 void compile_warning(
-	compile_process*,
-	const char*,
-	...
-);
-char compile_process_next_char(lex_process*);
-char compile_process_peek_char(lex_process*);
-void compile_process_push_char(lex_process*,char);
+	compile_process *,
+	const char *,
+	...);
+char compile_process_next_char(lex_process *);
+char compile_process_peek_char(lex_process *);
+void compile_process_push_char(lex_process *, char);
 
-//in file lex_process.c
-lex_process* lex_process_create(
-	compile_process*,
-	lex_process_functions*,
-	void*
-);
-void lex_process_free(lex_process*);
+// in file lex_process.c
+lex_process *lex_process_create(
+	compile_process *,
+	lex_process_functions *,
+	void *);
+void lex_process_free(lex_process *);
 
-//in file lexer.c
-int lex(lex_process*);
+// in file lexer.c
+int lex(lex_process *);
 /*
  * 输入字符串，返回构建的token
  */
-lex_process* lex_token_build_for_string(
-	compile_process*,
-	const char*
-);
+lex_process *lex_token_build_for_string(
+	compile_process *,
+	const char *);
 
-//in file token.c
-bool token_is_keyword(Token*,const char*);
-bool tolen_is_symbol(Token*,char);
-bool token_is_nl_or_comment_or_new_line(Token*);
+// in file token.c
+bool token_is_keyword(Token *, const char *);
+bool tolen_is_symbol(Token *, char);
+bool token_is_nl_or_comment_or_new_line(Token *);
 
+// in file parenthese_buffer.c
+parentheses_buffer *creat_parentheses_buffer();
+void write(parentheses_buffer *, char);
+char **get_buffer(parentheses_buffer *);
+void free_buffer(parentheses_buffer *);
 
-//in file parenthese_buffer.c
-parentheses_buffer* creat_parentheses_buffer();
-void write(parentheses_buffer*,char);
-char** get_buffer(parentheses_buffer*);
-void free_buffer(parentheses_buffer*);
+// in file parser.c
+int parse(compile_process *);
 
-//in file parser.c
-int parse(compile_process*);
+// in file node.c
+void set_mound(mound *node_set, mound *node_root_set);
+void push_node(Node *data);
+Node *next_node();
+Node *peek_node();
+Node *pop_node();
+Node *node_creat(Node *_node);
 #endif

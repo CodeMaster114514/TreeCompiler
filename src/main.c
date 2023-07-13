@@ -1,19 +1,25 @@
 #include <stdio.h>
 #include "compiler.h"
 
-int main(int argc,char* args[])
+int main(int argc, char *args[])
 {
-	if(argc < 2){
+	if (argc < 2)
+	{
 		goto error;
 	}
-//	printf("hello world!\n");
-	int res = compile_file(args[1],args[2],0);
-	if(res == COMPILER_FAILED_WITH_ERROR){
-error:
+	//	printf("hello world!\n");
+	int res = compile_file(args[1], args[2], 0);
+	if (res == COMPILER_FAILED_WITH_ERROR)
+	{
+	error:
 		printf("Compile failed or compile error\n");
-	}else if(res == COMPILER_FILE_COMPILE_OK){
+	}
+	else if (res == COMPILER_FILE_COMPILE_OK)
+	{
 		printf("Everything compile fine\n");
-	}else{
+	}
+	else
+	{
 		printf("Unknow error occurred\n");
 	}
 	return 0;

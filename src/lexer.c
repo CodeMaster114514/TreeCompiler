@@ -67,7 +67,9 @@ static char nextc()
 	if (lex_is_in_expression())
 	{
 		write(LexProcess->expression.buffer_info[LexProcess->expression
-		.parentheses_buffer_count - 1],c);
+													 .parentheses_buffer_count -
+												 1],
+			  c);
 	}
 	if (c == '\n')
 	{
@@ -137,7 +139,7 @@ char *read_number_str()
 
 Token *lexer_last_token()
 {
-	Token* token = last_data(LexProcess->tokens);
+	Token *token = last_data(LexProcess->tokens);
 	pop(LexProcess->tokens);
 	return token;
 }
@@ -149,7 +151,7 @@ Token *handle_whitespace()
 	{
 		token->whitespace = true;
 	}
-	push(LexProcess->tokens,token);
+	push(LexProcess->tokens, token);
 	nextc();
 	return read_next_token();
 }
@@ -179,7 +181,7 @@ int lexer_number_type(char c)
 Token *make_number_token_for_value(unsigned long number)
 {
 	int type = lexer_number_type(peekc());
-	if(type != NUMEBR_TYPE_NORMAL)
+	if (type != NUMEBR_TYPE_NORMAL)
 	{
 		nextc();
 	}
@@ -435,7 +437,7 @@ Token *make_operator_or_string_token()
 	char c = peekc();
 	if (c == '<')
 	{
-		Token* token = last_data(LexProcess->tokens);
+		Token *token = last_data(LexProcess->tokens);
 		if (token_is_keyword(token, "include"))
 		{
 			return make_string_token('<', '>');
@@ -839,13 +841,13 @@ int lex(lex_process *process)
 	process->expression.buffer_info = NULL;
 	LexProcess = process;
 	Token *token = read_next_token();
-	push(LexProcess->tokens,token);
+	push(LexProcess->tokens, token);
 	while (token)
 	{
 		token = read_next_token();
 		if (token)
 		{
-			push(LexProcess->tokens,token);
+			push(LexProcess->tokens, token);
 		}
 	}
 	return LEX_ANALYSIS_ALL_OK;
