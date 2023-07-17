@@ -1,5 +1,5 @@
 METHOR= debug
-OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/mound.o ./build/parser.o ./build/parentheses_buffer.o
+OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/mound.o ./build/parser.o ./build/parentheses_buffer.o ./build/node.o ./build/expressionable.o
 INCLUDE= -I./src/
 CODE_LOCATION=./src/
 #LIB_FILE= ./build/libparentheses_buffer.so
@@ -41,6 +41,12 @@ main: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler
 
 ./build/parentheses_buffer.o: $(CODE_LOCATION)./parentheses_buffer.c
 	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/parentheses_buffer.o -c
+
+./build/node.o: $(CODE_LOCATION)./node.c $(CODE_LOCATION)./compiler.h
+	gcc $(CODE_LOCATION)./node.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/node.o -c
+
+./build/expressionable.o: $(CODE_LOCATION)./expressionable.c $(CODE_LOCATION)./compiler.h
+	gcc $(CODE_LOCATION)./expressionable.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/expressionable.o -c
 
 clear:
 	rm ${OBJECTS} ${LIB_FILE} -rf

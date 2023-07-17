@@ -177,6 +177,11 @@ enum
 	NODE_TYPE_BLANK
 };
 
+enum
+{
+	NODE_FLAG_INSIDE_EXPRESSION = 0x01
+};
+
 struct Node;
 typedef struct Node Node;
 
@@ -186,6 +191,16 @@ struct Node
 	int flag;
 
 	Pos pos;
+
+	union
+	{
+		struct
+		{
+			Node* node_left;
+			Node* node_right;
+			char* op;
+		} exp;
+	};
 
 	struct node_binded
 	{
@@ -202,6 +217,21 @@ struct Node
 		unsigned long long llnum;
 	};
 };
+
+#define TOTAL_OPERATOR_GROUPS 14
+#define MAX_OPERATORS_IN_GROUP 14
+
+enum
+{
+	LEFT_TO_RIGHT,
+	RIGHT_TO_LEFT
+};
+
+typedef struct
+{
+	char* operators[MAX_OPERATORS_IN_GROUP];
+	int associativity;
+} expressionable_operator_precedence_group;
 
 struct lex_process;
 typedef struct lex_process lex_process;
@@ -307,4 +337,7 @@ Node *next_node();
 Node *peek_node();
 Node *pop_node();
 Node *node_creat(Node *_node);
+Node* node_peek_expressionable();
+bool node_is_expressionable(Node *node);
+Node *make_exp_node(Node *left,Node *right, char* op);
 #endif

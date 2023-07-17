@@ -26,7 +26,7 @@ Node *peek_node()
 {
 	Node **data = peek(node);
 	if (!data)
-		return data;
+		return NULL;
 	return *(Node **)peek(node);
 }
 
@@ -48,6 +48,28 @@ Node *pop_node()
 		pop(node_root);
 	}
 	return last_node;
+}
+
+bool node_is_expressionable(Node *node)
+{
+	return node->type == NODE_TYPE_EXPRESSION || node->type == NODE_TYPE_EXPRESSION_PARENTHESES || node->type == NODE_TYPE_UNARY || node->type == NODE_TYPE_IDENTIFIER || node->type == NODE_TYPE_NUMBER || node->type == NODE_TYPE_STRING;
+}
+
+Node* node_peek_expressionable()
+{
+	Node* node = next_node();
+	if(!node)
+	{
+		return NULL;
+	}
+	return node_is_expressionable(node) ? node : NULL;
+}
+
+Node *make_exp_node(Node *left,Node *right, char* op)
+{
+	assert(left);
+	assert(right);
+	return node_creat(&(Node){.type = NODE_TYPE_EXPRESSION, .exp.node_left = left, .exp.node_right = right, .exp.op = op});
 }
 
 Node *node_creat(Node *_node)

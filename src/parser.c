@@ -2,6 +2,35 @@
 
 static compile_process *current_process;
 static Token *parse_last_token;
+extern expressionable_operator_precedence_group
+	operator_precendence[TOTAL_OPERATOR_GROUPS];
+
+typedef struct 
+{
+	int flag;
+} History;
+
+void parse_expressionable(History* history);
+
+History* history_begin(int flag)
+{
+	History* history = calloc(1, sizeof(History));
+	history->flag = flag;
+	return history;
+}
+
+History* history_down(History* _history, int flag)
+{
+	History* history = calloc(1, sizeof(History));
+	memcpy(history,_history,sizeof(History));
+	history->flag = flag;
+	return history;
+}
+
+void free_history(History* history)
+{
+	free(history);
+}
 
 static void parse_nl_or_comment(Token *token)
 {
@@ -24,7 +53,7 @@ static Token *next_token()
 static Token *peek_token()
 {
 	Token *next_token = peek(current_process->tokens);
-	parse_nl_or_comment(next_token);
+
 	return peek(current_process->tokens);
 }
 
@@ -50,6 +79,149 @@ void parse_single_token_to_node()
 	}
 }
 
+void parse_expressionable_for_op(History* history, const char *op)
+{
+	parse_expressionable(history);
+}
+
+static int parse_get_precedence_for_operator(char *op, expressionable_operator_precedence_group** group)
+{
+	int i;
+	for(i = 0;i < TOTAL_OPERATOR_GROUPS;++i)
+	{
+		for(int b = 0;operator_precendence[i].operators[b];++b)
+		{
+			if(S_EQ(operator_precendence[i].operators[b],op))
+			{
+				*group = &operator_precendence[i];
+				return i;
+			}
+		}
+	}
+	return -1;
+}
+
+bool parse_left_operator_has_priority(char *left, char *right)
+{
+	expressionable_operator_precedence_group
+		*left_group = NULL,
+		*right_group = NULL;
+	if(S_EQ(left,right)) return false;
+	int left_lever = parse_get_precedence_for_operator(left,&left_group);
+	int right_lever = parse_get_precedence_for_operator(right,&right_group);
+	if(left_group->associativity == RIGHT_TO_LEFT)
+	{
+		return false;
+	}
+	return left_lever <= right_lever;
+}
+
+void parse_shift_children_node_left(Node* node)
+{
+	assert(node->type == NODE_TYPE_EXPRESSION);
+	assert(node->exp.node_right->type == NODE_TYPE_EXPRESSION);
+	char* right_op = node->exp.node_right->exp.op;
+	Node* new_left_node = node->exp.node_left;
+	Node* new_right_node = node->exp.node_right->exp.node_left;
+	Node* now_right_node = node->exp.node_right;
+	make_exp_node(new_left_node,new_right_node,node->exp.op);
+
+	Node* new_left_exp = pop_node();
+	Node* new_right_exp = node->exp.node_right->exp.node_right;
+
+	//释放右边表达式节点
+	free(now_right_node);
+	
+	node->exp.node_left = new_left_exp;
+	node->exp.node_right = new_right_exp;
+	node->exp.op = right_op;
+}
+
+void parse_reorder_expression(Node** out)
+{
+	Node* node = *out;
+	if(node->type != NODE_TYPE_EXPRESSION)
+		return;
+
+	// 不是表达式节点，不用做任何事
+	if(node->exp.node_left->type != NODE_TYPE_EXPRESSION &&
+		node->exp.node_right && node->exp.node_right->type != NODE_TYPE_EXPRESSION)
+		return;
+
+	// 只有右边是表达式
+	if(node->exp.node_left->type != NODE_TYPE_EXPRESSION &&
+		node->exp.node_right && node->exp.node_right->type == NODE_TYPE_EXPRESSION)
+	{
+		char *right_op = node->exp.node_right->exp.op;
+		if(parse_left_operator_has_priority(node->exp.op,right_op))
+		{
+			parse_shift_children_node_left(node);
+			parse_reorder_expression(&node->exp.node_left);
+			parse_reorder_expression(&node->exp.node_right);
+		}
+	}
+}
+
+void parse_exp_normal(History* history)
+{
+	Token* token = peek_token();
+	char* op = token->sval;
+	Node* node_left = node_peek_expressionable();
+	if(!node_left) return;
+	// 跳到下一个token
+	next_token();
+	// 弹出左节点
+	pop_node();
+	node_left->flag |= NODE_FLAG_INSIDE_EXPRESSION;
+	parse_expressionable_for_op(history_down(history,history->flag), op);
+	Node *node_right = pop_node();
+	node_right->flag |= NODE_FLAG_INSIDE_EXPRESSION;
+	make_exp_node(node_left,node_right,op);
+	Node *exp_node = pop_node();
+
+	// 重新排序
+	parse_reorder_expression(&exp_node);
+	
+	push_node(exp_node);
+}
+
+int parse_exp(History* history)
+{
+	parse_exp_normal(history);
+	return 0;
+}
+
+int parse_expressionable_single(History* history)
+{
+	Token *token = peek_token();
+	if(!token)
+	{
+		return -1;
+	}
+	
+	history->flag |= NODE_FLAG_INSIDE_EXPRESSION;
+	int res = -1;
+	switch(token->type)
+	{
+		case TOKEN_TYPE_NUMBER:
+		case TOKEN_TYPE_IDENTIFIER:
+			parse_single_token_to_node();
+			res = 0;
+			break;
+		case TOKEN_TYPE_OPERATOR:
+			res = parse_exp(history);
+			break;
+	}
+	return res;
+}
+
+
+void parse_expressionable(History* history)
+{
+	while(parse_expressionable_single(history) == 0);
+	free_history(history);
+}
+
 int parse_next()
 {
 	Token *token = peek_token();
@@ -63,10 +235,15 @@ int parse_next()
 	case TOKEN_TYPE_NUMBER:
 	case TOKEN_TYPE_IDENTIFIER:
 	case TOKEN_TYPE_STRING:
-		parse_single_token_to_node();
+		parse_expressionable(history_begin(0));
+		break;
+	case TOKEN_TYPE_NEWLINE:
+	case TOKEN_TYPE_COMMENT:
+		next_token();
+		res = parse_next();
 		break;
 	}
-	return 0;
+	return res;
 }
 
 int parse(compile_process *process)
