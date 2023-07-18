@@ -35,6 +35,7 @@ void free_compile_process(compile_process *process)
 	fclose(process->in_fp.fp);
 	if (process->out_fp != NULL)
 		fclose(process->out_fp);
+	free_nodes();
 	free_mound(process->node);
 	free_mound(process->node_tree);
 	free(process);

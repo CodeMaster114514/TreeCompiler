@@ -9,6 +9,65 @@ void set_mound(mound *node_set, mound *node_root_set)
 	node_root = node_root_set;
 }
 
+void free_node(Node* data)
+{
+	if(data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER)
+	{
+		free(data);
+		return;
+	}
+	if(data->type == NODE_TYPE_EXPRESSION)
+	{
+		free_node(data->exp.node_left);
+		free_node(data->exp.node_right);
+		return;
+	}
+}
+
+void free_nodes()
+{
+	int node_count = get_count(node);
+	int node_root_count = get_count(node_root);
+	set_peek(node,0);
+	set_peek(node_root,0);
+	bool nodeIsAllOk = false,rootIsAllOk = false;
+	Node **data,**root;
+	for(;;)
+	{
+		if(!nodeIsAllOk){
+			data = peek(node);
+			if(!data)
+			{
+				nodeIsAllOk = true;
+			}else
+			{
+				free_node(*data);
+				next(node);
+			}
+		}
+		if(!rootIsAllOk)
+		{
+			root = peek(node_root);
+			if(!root)
+			{
+				rootIsAllOk = true;
+			}else
+			{
+				if(*root == *data)
+				{
+					next(node_root);
+				}else
+				{
+					free_node(*root);
+					next(node_root);
+				}
+			}
+		}
+		if(rootIsAllOk && nodeIsAllOk)
+			break;
+	}
+}
+
 void push_node(Node *data)
 {
 	push(node, &data);

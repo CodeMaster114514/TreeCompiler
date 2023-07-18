@@ -191,6 +191,25 @@ int parse_exp(History* history)
 	return 0;
 }
 
+void parse_identifier(History* history)
+{
+	assert(peek_token()->type == TOKEN_TYPE_IDENTIFIER);
+	parse_single_token_to_node();
+}
+
+static bool is_keyword_variable_modifier(const char* var)
+{
+	return S_EQ(var,"unsigned") ||
+		S_EQ(var,"static") ||
+		S_EQ(var,"signed") ||
+		S_EQ(var,"const") ||
+		S_EQ(var,"extern");
+}
+
+void parse_keyword(History* history)
+{
+}
+
 int parse_expressionable_single(History* history)
 {
 	Token *token = peek_token();
@@ -203,14 +222,20 @@ int parse_expressionable_single(History* history)
 	int res = -1;
 	switch(token->type)
 	{
-		case TOKEN_TYPE_NUMBER:
 		case TOKEN_TYPE_IDENTIFIER:
+			parse_identifier(history);
+			res = 0;
+			break;
+		case TOKEN_TYPE_NUMBER:
 			parse_single_token_to_node();
 			res = 0;
 			break;
 		case TOKEN_TYPE_OPERATOR:
 			res = parse_exp(history);
 			break;
+		case TOKEN_TYPE_KEYWORDS:
+			parse_keyword(history);
+			res = 0;
 	}
 	return res;
 }
@@ -235,6 +260,7 @@ int parse_next()
 	case TOKEN_TYPE_NUMBER:
 	case TOKEN_TYPE_IDENTIFIER:
 	case TOKEN_TYPE_STRING:
+	case TOKEN_TYPE_KEYWORDS:
 		parse_expressionable(history_begin(0));
 		break;
 	case TOKEN_TYPE_NEWLINE:

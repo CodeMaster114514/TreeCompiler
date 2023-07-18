@@ -218,6 +218,29 @@ struct Node
 	};
 };
 
+struct datatype;
+
+typedef struct datatype datatype;
+
+struct datatype
+{
+	int type;
+
+	int flag;
+
+	char* type_str;
+
+	datatype* secondary;
+
+	int pointer_depth;
+
+	union
+	{
+		Node* struct_node;
+		Node* union_node;
+	};
+};
+
 #define TOTAL_OPERATOR_GROUPS 14
 #define MAX_OPERATORS_IN_GROUP 14
 
@@ -332,6 +355,8 @@ int parse(compile_process *);
 
 // in file node.c
 void set_mound(mound *node_set, mound *node_root_set);
+void free_node(Node* data);
+void free_nodes();
 void push_node(Node *data);
 Node *next_node();
 Node *peek_node();
