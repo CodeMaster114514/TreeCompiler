@@ -196,9 +196,9 @@ struct Node
 	{
 		struct
 		{
-			Node* node_left;
-			Node* node_right;
-			char* op;
+			Node *node_left;
+			Node *node_right;
+			char *op;
 		} exp;
 	};
 
@@ -218,6 +218,40 @@ struct Node
 	};
 };
 
+enum
+{
+	DATATYPE_FLAG_STATIC = 0b00000000000000000000000000000001,
+	DATATYPE_FLAG_SIGNED = 0b00000000000000000000000000000010,
+	DATATYPE_FLAG_CONST = 0b00000000000000000000000000000100,
+	DATATYPE_FLAG_POINTER = 0b00000000000000000000000000001000,
+	DATATYPE_FLAG_ARRAY = 0b00000000000000000000000000010000,
+	DATATYPE_FLAgG_EXTERN = 0b00000000000000000000000000100000,
+	DATATYPE_FLAG_SECONDARY = 0b00000000000000000000000001000000,
+	DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME = 0b00000000000000000000000010000000,
+	DATATYPE_FLAG_LITERAL = 0b00000000000000000000000100000000
+};
+
+enum
+{
+	DATA_TYPE_CHAR,
+	DATA_TYPE_VOID,
+	DATA_TYPE_INT,
+	DATA_TYPE_SHORT,
+	DATA_TYPE_LONG,
+	DATA_TYPE_FLOAT,
+	DATA_TYPE_DOUBLE,
+	DATA_TYPE_STRUCT,
+	DATA_TYPE_UNION,
+	DATA_TYPE_UNKNOW
+};
+
+enum
+{
+	DATA_TYPE_EXPECT_PRIMITIVE,
+	DATA_TYPE_EXPECT_UNION,
+	DATA_TYPE_EXPECT_STRUCT
+};
+
 struct datatype;
 
 typedef struct datatype datatype;
@@ -228,16 +262,16 @@ struct datatype
 
 	int flag;
 
-	char* type_str;
+	char *type_str;
 
-	datatype* secondary;
+	datatype *secondary;
 
 	int pointer_depth;
 
 	union
 	{
-		Node* struct_node;
-		Node* union_node;
+		Node *struct_node;
+		Node *union_node;
 	};
 };
 
@@ -252,7 +286,7 @@ enum
 
 typedef struct
 {
-	char* operators[MAX_OPERATORS_IN_GROUP];
+	char *operators[MAX_OPERATORS_IN_GROUP];
 	int associativity;
 } expressionable_operator_precedence_group;
 
@@ -332,6 +366,7 @@ void lex_process_free(lex_process *);
 
 // in file lexer.c
 int lex(lex_process *);
+bool keyword_is_datatype(const char *str);
 /*
  * 输入字符串，返回构建的token
  */
@@ -343,6 +378,7 @@ lex_process *lex_token_build_for_string(
 bool token_is_keyword(Token *, const char *);
 bool tolen_is_symbol(Token *, char);
 bool token_is_nl_or_comment_or_new_line(Token *);
+bool token_is_primitive(Token *token);
 
 // in file parenthese_buffer.c
 parentheses_buffer *creat_parentheses_buffer();
@@ -355,14 +391,14 @@ int parse(compile_process *);
 
 // in file node.c
 void set_mound(mound *node_set, mound *node_root_set);
-void free_node(Node* data);
+void free_node(Node *data);
 void free_nodes();
 void push_node(Node *data);
 Node *next_node();
 Node *peek_node();
 Node *pop_node();
 Node *node_creat(Node *_node);
-Node* node_peek_expressionable();
+Node *node_peek_expressionable();
 bool node_is_expressionable(Node *node);
-Node *make_exp_node(Node *left,Node *right, char* op);
+Node *make_exp_node(Node *left, Node *right, char *op);
 #endif

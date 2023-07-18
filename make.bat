@@ -1,4 +1,4 @@
-set OBJECTS= ./build/compiler.obj ./build/process.obj ./build/lex_process.obj ./build/lexer.obj ./build/token.obj ./build/parentheses_buffer.obj ./build/mound.obj ./build/parser.obj ./build/node.obj
+set OBJECTS= ./build/compiler.obj ./build/process.obj ./build/lex_process.obj ./build/lexer.obj ./build/token.obj ./build/parentheses_buffer.obj ./build/mound.obj ./build/parser.obj ./build/node.obj ./build/expressionable.obj
 set INCLUDE= -I./src/
 set CODE_LOCATION=./src/
 set COMPILE_METHOR= -g
@@ -13,4 +13,5 @@ set COMPILE_METHOR= -g
     gcc %CODE_LOCATION%./mound.c %INCLUDE% %COMPILE_METHOR% -c -o ./build/mound.obj
     gcc %CODE_LOCATION%./parser.c %INCLUDE% %COMPILE_METHOR% -c -o ./build/parser.obj
     gcc %CODE_LOCATION%./node.c %INCLUDE% %COMPILE_METHOR% -c -o ./build/node.obj
+    gcc %CODE_LOCATION%./expressionable.c %INCLUDE% %COMPILE_METHOR% -c -o ./build/expressionable.obj
     gcc %CODE_LOCATION%./main.c %OBJECTS% %LIB_FILE%  %COMPILE_METHOR% -o main

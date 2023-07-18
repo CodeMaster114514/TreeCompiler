@@ -9,14 +9,14 @@ void set_mound(mound *node_set, mound *node_root_set)
 	node_root = node_root_set;
 }
 
-void free_node(Node* data)
+void free_node(Node *data)
 {
-	if(data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER)
+	if (data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER)
 	{
 		free(data);
 		return;
 	}
-	if(data->type == NODE_TYPE_EXPRESSION)
+	if (data->type == NODE_TYPE_EXPRESSION)
 	{
 		free_node(data->exp.node_left);
 		free_node(data->exp.node_right);
@@ -28,42 +28,46 @@ void free_nodes()
 {
 	int node_count = get_count(node);
 	int node_root_count = get_count(node_root);
-	set_peek(node,0);
-	set_peek(node_root,0);
-	bool nodeIsAllOk = false,rootIsAllOk = false;
-	Node **data,**root;
-	for(;;)
+	set_peek(node, 0);
+	set_peek(node_root, 0);
+	bool nodeIsAllOk = false, rootIsAllOk = false;
+	Node **data, **root;
+	for (;;)
 	{
-		if(!nodeIsAllOk){
+		if (!nodeIsAllOk)
+		{
 			data = peek(node);
-			if(!data)
+			if (!data)
 			{
 				nodeIsAllOk = true;
-			}else
+			}
+			else
 			{
 				free_node(*data);
 				next(node);
 			}
 		}
-		if(!rootIsAllOk)
+		if (!rootIsAllOk)
 		{
 			root = peek(node_root);
-			if(!root)
+			if (!root)
 			{
 				rootIsAllOk = true;
-			}else
+			}
+			else
 			{
-				if(*root == *data)
+				if (*root == *data)
 				{
 					next(node_root);
-				}else
+				}
+				else
 				{
 					free_node(*root);
 					next(node_root);
 				}
 			}
 		}
-		if(rootIsAllOk && nodeIsAllOk)
+		if (rootIsAllOk && nodeIsAllOk)
 			break;
 	}
 }
@@ -114,17 +118,17 @@ bool node_is_expressionable(Node *node)
 	return node->type == NODE_TYPE_EXPRESSION || node->type == NODE_TYPE_EXPRESSION_PARENTHESES || node->type == NODE_TYPE_UNARY || node->type == NODE_TYPE_IDENTIFIER || node->type == NODE_TYPE_NUMBER || node->type == NODE_TYPE_STRING;
 }
 
-Node* node_peek_expressionable()
+Node *node_peek_expressionable()
 {
-	Node* node = next_node();
-	if(!node)
+	Node *node = next_node();
+	if (!node)
 	{
 		return NULL;
 	}
 	return node_is_expressionable(node) ? node : NULL;
 }
 
-Node *make_exp_node(Node *left,Node *right, char* op)
+Node *make_exp_node(Node *left, Node *right, char *op)
 {
 	assert(left);
 	assert(right);

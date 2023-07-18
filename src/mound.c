@@ -56,9 +56,9 @@ void pop(mound *this)
     --this->count;
     --this->write_p;
     --this->peek;
-    if(this->peek < 0)
+    if (this->peek < 0)
     {
-	    this->peek = 0;
+        this->peek = 0;
     }
     assert(noCross(this));
 }
@@ -88,7 +88,8 @@ void free_mound(mound *this)
 
 void *peek(mound *this)
 {
-    if(this->peek >= this->count){
+    if (this->peek >= this->count)
+    {
         return NULL;
     }
     return (void *)(this->buffer + this->peek * this->len);
@@ -97,7 +98,8 @@ void *peek(mound *this)
 void *next(mound *this)
 {
     void *data = peek(this);
-    if(!data){
+    if (!data)
+    {
         return data;
     }
     ++this->peek;
