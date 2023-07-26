@@ -391,7 +391,7 @@ void lex_finish_expression()
 	if (LexProcess->expression.current_expression_count <
 		0)
 	{
-		compile_error(LexProcess->cprocess, "You can't close an expression that doesn' exist!");
+		compile_error(LexProcess->cprocess, "You can't close an expression that doesn' exist!\n");
 	}
 }
 
@@ -659,7 +659,7 @@ Token *make_quote_token()
 	{
 		compile_error(
 			LexProcess->cprocess,
-			"You didn't close the quote!");
+			"You didn't close the quote!\n");
 	}
 	return token_creat(&(Token){
 		.type = TOKEN_TYPE_NUMBER,

@@ -3,7 +3,7 @@
 #define PRIMITIVE_TYPE_TOTAL 7
 
 char *primitive[PRIMITIVE_TYPE_TOTAL] =
-	{"char", "short", "int", "long", "struct", "union"};
+	{"char", "short", "int", "long", "float", "double"};
 
 bool token_is_keyword(Token *token,
 					  const char *keyword)
@@ -24,6 +24,10 @@ bool token_is_nl_or_comment_or_new_line(Token *token)
 
 bool token_is_primitive(Token *token)
 {
+	if(!token)
+	{
+		return false;
+	}
 	const char *keyword = token->sval;
 	for (int i = 0; i < PRIMITIVE_TYPE_TOTAL; ++i)
 	{
@@ -33,4 +37,9 @@ bool token_is_primitive(Token *token)
 		}
 	}
 	return false;
+}
+
+bool token_is_operator(Token* token,char* op)
+{
+	return token && op && token->type == TOKEN_TYPE_OPERATOR && S_EQ(token->sval,op);
 }

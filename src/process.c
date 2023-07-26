@@ -25,8 +25,8 @@ compile_process *compile_process_create(
 	process->out_fp = output;
 	process->pos.line = 1;
 	process->pos.col = 1;
-	process->node = create_mound(sizeof(Node *));
-	process->node_tree = create_mound(sizeof(Node *));
+	process->node = creat_mound(sizeof(Node *));
+	process->node_tree = creat_mound(sizeof(Node *));
 	return process;
 }
 

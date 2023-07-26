@@ -6,7 +6,7 @@ lex_process *lex_process_create(
 	void *private)
 {
 	lex_process *process = (lex_process *)calloc(1, sizeof(lex_process));
-	process->tokens = create_mound(sizeof(Token));
+	process->tokens = creat_mound(sizeof(Token));
 	process->cprocess = cprocess;
 	process->private = private;
 	process->process_functions = lex_process_function;

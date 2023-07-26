@@ -10,7 +10,7 @@ bool noCross(mound *this)
     return (this->peek >= 0 && this->write_p >= 0 && this->peek <= this->place && this->write_p <= this->place);
 }
 
-mound *create_mound(size_t len)
+mound *creat_mound(size_t len)
 {
     mound *ret = calloc(1, sizeof(mound));
     ret->buffer = calloc(20, len);
@@ -21,7 +21,7 @@ mound *create_mound(size_t len)
     return ret;
 }
 
-mound *create_mound_with_data(void *data, size_t len, size_t count)
+mound *creat_mound_with_data(void *data, size_t len, size_t count)
 {
     mound *ret = calloc(1, sizeof(mound));
     ret->buffer = calloc(count, len);
@@ -65,7 +65,7 @@ void pop(mound *this)
 
 void set_peek(mound *this, size_t p)
 {
-    if (p > this->peek)
+    if (p >= this->count)
     {
         this->peek = get_count(this) - 1;
     }
@@ -102,17 +102,61 @@ void *next(mound *this)
     {
         return data;
     }
-    ++this->peek;
+    if(this->flag & MOUND_FLAG_PEEK_DECREMENT)
+	    --this->peek;
+    else
+	    ++this->peek;
     assert(noCross(this));
     return data;
 }
 
 void *last_data(mound *this)
 {
-    return (void *)(this->buffer + (this->count - 1) * this->len);
+	if(this->count <= 0)
+		return NULL;
+	return (void *)(this->buffer + (this->count - 1) * this->len);
 }
 
 bool isEmpty(mound *this)
 {
     return this->count == 0;
+}
+
+void set_flag(mound *this, int flag)
+{
+	this->flag |= flag;
+}
+
+void unset_flag(mound *this, int flag)
+{
+	this->flag &= ~flag;
+}
+
+void set_peek_in_end(mound *this)
+{
+	set_peek(this, this->count-1);
+}
+
+void *peek_ptr(mound *this)
+{
+	void **ptr = peek(this);
+	if(!ptr)
+		return NULL;
+	return *ptr;
+}
+
+void *next_ptr(mound *this)
+{
+	void **ptr = next(this);
+	if(!ptr)
+		return NULL;
+	return *ptr;
+}
+
+void *last_data_ptr(mound *this)
+{
+	void **ptr = last_data(this);
+	if(!ptr)
+		return NULL;
+	return *ptr;
 }

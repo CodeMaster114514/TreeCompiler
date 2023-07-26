@@ -83,6 +83,11 @@ enum
 
 enum
 {
+	TOKEN_FLAG_FROM_PARSER = 0b00000001
+};
+
+enum
+{
 	NUMEBR_TYPE_NORMAL,
 	NUMBER_TYPE_LONG,
 	NUMBER_TYPE_FLOAT,
@@ -122,6 +127,9 @@ enum
 	COMPILER_FILE_COMPILE_OK
 };
 
+struct scope;
+typedef struct scope Scope;
+
 typedef struct
 {
 	int flags;
@@ -136,6 +144,12 @@ typedef struct
 	mound *tokens;
 	mound *node;
 	mound *node_tree;
+
+	struct
+	{
+		Scope *root;
+		Scope *current;
+	} scope;
 } compile_process;
 
 enum
@@ -225,7 +239,7 @@ enum
 	DATATYPE_FLAG_CONST = 0b00000000000000000000000000000100,
 	DATATYPE_FLAG_POINTER = 0b00000000000000000000000000001000,
 	DATATYPE_FLAG_ARRAY = 0b00000000000000000000000000010000,
-	DATATYPE_FLAgG_EXTERN = 0b00000000000000000000000000100000,
+	DATATYPE_FLAG_EXTERN = 0b00000000000000000000000000100000,
 	DATATYPE_FLAG_SECONDARY = 0b00000000000000000000000001000000,
 	DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME = 0b00000000000000000000000010000000,
 	DATATYPE_FLAG_LITERAL = 0b00000000000000000000000100000000
@@ -266,6 +280,8 @@ struct datatype
 
 	datatype *secondary;
 
+	size_t size;
+
 	int pointer_depth;
 
 	union
@@ -273,6 +289,27 @@ struct datatype
 		Node *struct_node;
 		Node *union_node;
 	};
+};
+
+enum
+{
+	ZERO = 0,
+	BYTE = 1,
+	WORD = 2,
+	DWORD = 4,
+	QWORD = 8,
+	DQWORD = 16
+};
+
+struct scope
+{
+	int flag;
+
+	mound* entities;//存储数据信息
+
+	size_t total;
+
+	Scope* parent;
 };
 
 #define TOTAL_OPERATOR_GROUPS 14
@@ -379,6 +416,7 @@ bool token_is_keyword(Token *, const char *);
 bool tolen_is_symbol(Token *, char);
 bool token_is_nl_or_comment_or_new_line(Token *);
 bool token_is_primitive(Token *token);
+bool token_is_operator(Token* token,char* op);
 
 // in file parenthese_buffer.c
 parentheses_buffer *creat_parentheses_buffer();
@@ -401,4 +439,25 @@ Node *node_creat(Node *_node);
 Node *node_peek_expressionable();
 bool node_is_expressionable(Node *node);
 Node *make_exp_node(Node *left, Node *right, char *op);
+
+//in file datatype.c
+bool datatype_is_struct_or_union_for_name(Token *token);
+
+//in file scope.c
+Scope *scope_alloc();
+void free_scope(Scope *scope);
+Scope *scope_creat_root(compile_process *process);
+void scope_free_root(compile_process *process);
+Scope *scope_new(compile_process *process, int flag);
+void scope_iteration_start(Scope *scope);
+void scope_iteration_end(Scope *scope);
+void *scope_iteration_back(Scope *scope);
+void *scope_last_entity_at_scope(Scope *scope);
+void *scope_last_entity_from_scope_stop_at(Scope *scope, Scope *stop);
+void *scope_last_entity_stop_at(compile_process *process, Scope *stop);
+void *scope_last_entity(compile_process *process);
+void scope_push(compile_process *process, void *ptr, size_t size);
+void scope_finish(compile_process *process);
+Scope *scope_current(compile_process *process);
+
 #endif
