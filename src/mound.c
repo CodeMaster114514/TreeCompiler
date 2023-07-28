@@ -77,7 +77,9 @@ void set_peek(mound *this, size_t p)
 
 size_t get_count(mound *this)
 {
-    return this->count;
+	if(!this)
+		return 0;
+	return this->count;
 }
 
 void free_mound(mound *this)

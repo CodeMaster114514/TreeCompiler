@@ -39,7 +39,22 @@ bool token_is_primitive(Token *token)
 	return false;
 }
 
-bool token_is_operator(Token* token,char* op)
+bool token_is_operator(Token *token,char *op)
 {
 	return token && op && token->type == TOKEN_TYPE_OPERATOR && S_EQ(token->sval,op);
+}
+
+void free_token(Token *token)
+{
+	if (token->type ==
+		TOKEN_TYPE_STRING ||
+	token->type ==
+		TOKEN_TYPE_OPERATOR ||
+	token->type ==
+		TOKEN_TYPE_KEYWORDS ||
+	token->type ==
+		TOKEN_TYPE_COMMENT)
+	{
+		free(token->sval);
+	}
 }

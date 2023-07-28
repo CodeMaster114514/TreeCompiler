@@ -67,7 +67,7 @@ static char nextc()
 	if (lex_is_in_expression())
 	{
 		write(LexProcess->expression.buffer_info[LexProcess->expression
-													 .parentheses_buffer_count -
+													 .string_buffer_count -
 												 1],
 			  c);
 	}
@@ -98,7 +98,7 @@ static Token *token_creat(Token *_token)
 	{
 		tmp_token.between_brackets =
 			get_buffer(
-				LexProcess->expression.buffer_info[LexProcess->expression.parentheses_buffer_count - 1]);
+				LexProcess->expression.buffer_info[LexProcess->expression.string_buffer_count - 1]);
 	}
 	tmp_token.pos = LexProcess->pos;
 	return &tmp_token;
@@ -107,39 +107,23 @@ static Token *token_creat(Token *_token)
 char *read_number_str()
 {
 	char *str_ret = NULL;
-	int count = 0;
-	if (lex_is_in_expression())
+	string_buffer *buffer = creat_string_buffer();
+	while(peekc() >= '0' && peekc() <= '9')
 	{
-		count = LexProcess->expression.current_expression_count;
-		LexProcess->expression.current_expression_count = 0;
+		write(buffer, nextc());
 	}
-	int i = 0;
-	Pos pos_of_Lex = LexProcess->pos;
-	Pos pos_of_compiler = LexProcess->cprocess->pos;
-	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
-	while (peekc() >= '0' && peekc() <= '9')
-	{
-		nextc();
-		++i;
-	}
-	if (count != 0)
-		LexProcess->expression.current_expression_count = count;
-	LexProcess->pos = pos_of_Lex;
-	LexProcess->cprocess->pos = pos_of_compiler;
-	fseek(LexProcess->cprocess->in_fp.fp, fp_now, SEEK_SET);
-	char *str = calloc(i + 1, sizeof(char));
-	for (int j = 0; j < i; ++j)
-	{
-		str[j] = nextc();
-	}
-	str[i] = '\0';
-	str_ret = str;
+	write(buffer, '\0');
+	str_ret = get_buffer(buffer);
+	free_buffer_without_string(buffer);
 	return str_ret;
 }
 
 Token *lexer_last_token()
 {
 	Token *token = last_data(LexProcess->tokens);
+	if(!token){
+		return NULL;
+	}
 	pop(LexProcess->tokens);
 	return token;
 }
@@ -367,21 +351,21 @@ void lex_new_expression()
 	{
 		if (LexProcess->expression.buffer_info == NULL)
 		{
-			LexProcess->expression.buffer_info = calloc(1, sizeof(parentheses_buffer *));
-			++LexProcess->expression.parentheses_buffer_count;
+			LexProcess->expression.buffer_info = calloc(1, sizeof(string_buffer *));
+			++LexProcess->expression.string_buffer_count;
 		}
 		else
 		{
-			parentheses_buffer **buffer = calloc(LexProcess->expression.parentheses_buffer_count + 1, sizeof(parentheses_buffer *));
-			for (int i = 0; i < LexProcess->expression.parentheses_buffer_count; ++i)
+			string_buffer **buffer = calloc(LexProcess->expression.string_buffer_count + 1, sizeof(string_buffer *));
+			for (int i = 0; i < LexProcess->expression.string_buffer_count; ++i)
 			{
 				buffer[i] = LexProcess->expression.buffer_info[i];
 			}
-			++LexProcess->expression.parentheses_buffer_count;
+			++LexProcess->expression.string_buffer_count;
 			free(LexProcess->expression.buffer_info);
 			LexProcess->expression.buffer_info = buffer;
 		}
-		LexProcess->expression.buffer_info[LexProcess->expression.parentheses_buffer_count - 1] = creat_parentheses_buffer();
+		LexProcess->expression.buffer_info[LexProcess->expression.string_buffer_count - 1] = creat_string_buffer();
 	}
 }
 
@@ -674,34 +658,14 @@ bool is_hex_number(char c)
 
 char *read_hex_number_str()
 {
-	int count = 0;
-	if (lex_is_in_expression())
+	string_buffer *buffer = creat_string_buffer();
+	while(is_hex_number(peekc()))
 	{
-		count = LexProcess->expression.current_expression_count;
-		LexProcess->expression.current_expression_count = 0;
+		write(buffer,nextc());
 	}
-	int i = 0;
-	Pos pos_of_LexProcess = LexProcess->pos;
-	Pos pos_of_cprocess = LexProcess->cprocess->pos;
-	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
-	char c;
-	for (c = nextc();
-		 is_hex_number(c);
-		 c = nextc())
-	{
-
-		++i;
-	}
-	if (count != 0)
-		LexProcess->expression.current_expression_count = count;
-	LexProcess->pos = pos_of_LexProcess;
-	LexProcess->cprocess->pos = pos_of_cprocess;
-	fseek(LexProcess->cprocess->in_fp.fp, fp_now, SEEK_SET);
-	char *str = calloc(i + 1, sizeof(char *));
-	for (int j = 0; j < i; ++j)
-	{
-		str[j] = nextc();
-	}
+	write(buffer,'\0');
+	char *str = get_buffer(buffer);
+	free_buffer_without_string(buffer);
 	return str;
 }
 
@@ -726,33 +690,13 @@ bool is_bin_number(char c)
 
 char *read_bin_number_str()
 {
-	int count = 0;
-	if (lex_is_in_expression())
+	string_buffer *buffer = creat_string_buffer();
+	while(is_bin_number(peekc()))
 	{
-		count = LexProcess->expression.current_expression_count;
-		LexProcess->expression.current_expression_count = 0;
+		write(buffer,nextc());
 	}
-	int i = 0;
-	Pos pos_of_LexProcess = LexProcess->pos;
-	Pos pos_of_cprocess = LexProcess->cprocess->pos;
-	long fp_now = ftell(LexProcess->cprocess->in_fp.fp);
-	char c;
-	for (c = nextc();
-		 is_bin_number(c);
-		 c = nextc())
-	{
-		++i;
-	}
-	if (count != 0)
-		LexProcess->expression.current_expression_count = count;
-	LexProcess->pos = pos_of_LexProcess;
-	LexProcess->cprocess->pos = pos_of_cprocess;
-	fseek(LexProcess->cprocess->in_fp.fp, fp_now, SEEK_SET);
-	char *str = calloc(i + 1, sizeof(char *));
-	for (int j = 0; j < i; ++j)
-	{
-		str[j] = nextc();
-	}
+	char* str = get_buffer(buffer);
+	free_buffer_without_string(buffer);
 	return str;
 }
 
@@ -772,9 +716,8 @@ Token *make_special_number_token()
 {
 	Token *token = NULL;
 	Token *last_token = lexer_last_token();
-	if (last_token->llnum == 0)
+	if (last_token && last_token->type == TOKEN_TYPE_NUMBER && last_token->llnum == 0)
 	{
-		pop(LexProcess->tokens);
 		if (peekc() == 'x')
 		{
 			token = make_special_number_hexadcimal();
@@ -790,7 +733,14 @@ Token *make_special_number_token()
 	}
 	else
 	{
-		token = read_special_token();
+		if(peekc() == 'x' || peekc() == 'b')
+		{
+			compile_error(LexProcess->cprocess, "Unexpexted Token\n");
+		}
+		else
+		{
+			token = read_special_token();
+		}
 	}
 	return token;
 }
@@ -910,6 +860,7 @@ lex_process *lex_token_build_for_string(compile_process *cprocess, const char *s
 		return NULL;
 	}
 	free(str_new);
-	string_read_p->str = str;
+	//string_read_p->str = str;
+	free(string_read_p);
 	return process;
 }

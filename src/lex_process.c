@@ -15,30 +15,29 @@ lex_process *lex_process_create(
 	return process;
 }
 
+void free_tokens(lex_process *process)
+{
+	set_peek(process->tokens, 0);
+	while(1)
+	{
+		Token *current = next(process->tokens);
+		if(!current)
+		{
+			break;
+		}
+		free_token(current);
+	}
+}
+
 void lex_process_free(lex_process *process)
 {
 	// free(process->cprocess);
-	for (int i = 0; i < process->expression.parentheses_buffer_count; ++i)
+	for (int i = 0; i < process->expression.string_buffer_count; ++i)
 	{
 		free_buffer(process->expression.buffer_info[i]);
 	}
 	free(process->expression.buffer_info);
-	size_t count = get_count(process->tokens);
-	for (size_t i = 0; i < count; ++i)
-	{
-		Token *the = read(process->tokens, i);
-		if (the->type ==
-				TOKEN_TYPE_STRING ||
-			the->type ==
-				TOKEN_TYPE_OPERATOR ||
-			the->type ==
-				TOKEN_TYPE_KEYWORDS ||
-			the->type ==
-				TOKEN_TYPE_COMMENT)
-		{
-			free(the->sval);
-		}
-	}
+	free_tokens(process);
 	free_mound(process->tokens);
 	if (!process->private)
 		free(process->private);

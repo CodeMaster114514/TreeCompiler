@@ -16,6 +16,11 @@ void free_node(Node *data)
 		free(data);
 		return;
 	}
+	if (data->type == NODE_TYPE_VARIABLE)
+	{
+		free_datatype(&data->var.datatype);
+		free_node(data->var.value);
+	}
 	if (data->type == NODE_TYPE_EXPRESSION)
 	{
 		free_node(data->exp.node_left);
@@ -31,38 +36,38 @@ void free_nodes()
 	set_peek(node, 0);
 	set_peek(node_root, 0);
 	bool nodeIsAllOk = false, rootIsAllOk = false;
-	Node **data, **root;
+	Node *data, *root;
 	for (;;)
 	{
 		if (!nodeIsAllOk)
 		{
-			data = peek(node);
+			data = peek_ptr(node);
 			if (!data)
 			{
 				nodeIsAllOk = true;
 			}
 			else
 			{
-				free_node(*data);
+				free_node(data);
 				next(node);
 			}
 		}
 		if (!rootIsAllOk)
 		{
-			root = peek(node_root);
+			root = peek_ptr(node_root);
 			if (!root)
 			{
 				rootIsAllOk = true;
 			}
 			else
 			{
-				if (*root == *data)
+				if (root == data)
 				{
 					next(node_root);
 				}
 				else
 				{
-					free_node(*root);
+					free_node(root);
 					next(node_root);
 				}
 			}
@@ -79,27 +84,27 @@ void push_node(Node *data)
 
 Node *next_node()
 {
-	Node **data = next(node);
+	Node *data = next_ptr(node);
 	if (!data)
 		return NULL;
-	return *data;
+	return data;
 }
 
 Node *peek_node()
 {
-	Node **data = peek(node);
+	Node *data = peek_ptr(node);
 	if (!data)
 		return NULL;
-	return *(Node **)peek(node);
+	return data;
 }
 
 Node *pop_node()
 {
-	Node *last_node = *(Node **)last_data(node);
+	Node *last_node = last_data_ptr(node);
 	Node *last_node_root;
 	if (!isEmpty(node_root))
 	{
-		last_node_root = *(Node **)last_data(node_root);
+		last_node_root = last_data_ptr(node_root);
 	}
 	else
 	{

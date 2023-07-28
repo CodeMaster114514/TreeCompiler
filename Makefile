@@ -1,5 +1,5 @@
 METHOR= debug
-OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/mound.o ./build/parser.o ./build/parentheses_buffer.o ./build/node.o ./build/expressionable.o ./build/datatype.o ./build/scope.o
+OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/mound.o ./build/parser.o ./build/string_buffer.o ./build/node.o ./build/expressionable.o ./build/datatype.o ./build/scope.o ./build/symresolver.o
 INCLUDE= -I./src/
 CODE_LOCATION=./src/
 #LIB_FILE= ./build/libparentheses_buffer.so
@@ -41,8 +41,8 @@ main: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler
 ./build/parser.o: $(CODE_LOCATION)./parser.c $(CODE_LOCATION)./compiler.h
 	$(COMPILER) $(CODE_LOCATION)./parser.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/parser.o -c
 
-./build/parentheses_buffer.o: $(CODE_LOCATION)./parentheses_buffer.c
-	gcc $(CODE_LOCATION)./parentheses_buffer.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/parentheses_buffer.o -c
+./build/string_buffer.o: $(CODE_LOCATION)./string_buffer.c $(CODE_LOCATION)./compiler.h
+	$(COMPILER) $(CODE_LOCATION)./string_buffer.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/string_buffer.o -c
 
 ./build/node.o: $(CODE_LOCATION)./node.c $(CODE_LOCATION)./compiler.h
 	$(COMPILER) $(CODE_LOCATION)./node.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/node.o -c
@@ -55,6 +55,9 @@ main: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler
 
 ./build/scope.o: $(CODE_LOCATION)./scope.c $(CODE_LOCATION)./compiler.h
 	$(COMPILER) $(CODE_LOCATION)./scope.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/scope.o -c
+
+./build/symresolver.o: $(CODE_LOCATION)./symresolver.c $(CODE_LOCATION)./compiler.h
+	$(COMPILER) $(CODE_LOCATION)./symresolver.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/symresolver.o -c
 
 clear:
 	rm ${OBJECTS} ${LIB_FILE} -rf

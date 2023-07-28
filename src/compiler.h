@@ -118,7 +118,7 @@ typedef struct
 	// 如果值为ture，那么两个令牌时间是空格
 	bool whitespace;
 
-	char **between_brackets;
+	char *between_brackets;
 } Token;
 
 enum
@@ -129,6 +129,20 @@ enum
 
 struct scope;
 typedef struct scope Scope;
+
+enum
+{
+	SYMBLE_TYPE_NODE,
+	SYMBLE_TYPE_NATIVE_FUNCTION,
+	SYMBLE_TYPE_UNKOWN
+};
+
+typedef struct
+{
+	char* name;
+	int type;
+	void* data;
+} Symble;
 
 typedef struct
 {
@@ -150,6 +164,12 @@ typedef struct
 		Scope *root;
 		Scope *current;
 	} scope;
+
+	struct
+	{
+		mound *current_table,
+		      *tables;
+	} symbles;
 } compile_process;
 
 enum
@@ -196,8 +216,32 @@ enum
 	NODE_FLAG_INSIDE_EXPRESSION = 0x01
 };
 
+struct DataType;
+typedef struct DataType DataType;
+
 struct Node;
 typedef struct Node Node;
+
+struct DataType
+{
+	int type;
+
+	int flag;
+
+	char *type_str;
+
+	DataType *secondary;
+
+	size_t size;
+
+	int pointer_depth;
+
+	union
+	{
+		Node *struct_node;
+		Node *union_node;
+	};
+};
 
 struct Node
 {
@@ -214,6 +258,13 @@ struct Node
 			Node *node_right;
 			char *op;
 		} exp;
+
+		struct
+		{
+			DataType datatype;
+			char *name;
+			Node *value;
+		}var;
 	};
 
 	struct node_binded
@@ -264,31 +315,6 @@ enum
 	DATA_TYPE_EXPECT_PRIMITIVE,
 	DATA_TYPE_EXPECT_UNION,
 	DATA_TYPE_EXPECT_STRUCT
-};
-
-struct datatype;
-
-typedef struct datatype datatype;
-
-struct datatype
-{
-	int type;
-
-	int flag;
-
-	char *type_str;
-
-	datatype *secondary;
-
-	size_t size;
-
-	int pointer_depth;
-
-	union
-	{
-		Node *struct_node;
-		Node *union_node;
-	};
 };
 
 enum
@@ -345,7 +371,7 @@ typedef struct
 {
 	char *buffer;
 	int buffer_len;
-} parentheses_buffer;
+} string_buffer;
 
 typedef struct
 {
@@ -363,8 +389,8 @@ struct lex_process
 	struct
 	{
 		int current_expression_count,
-			parentheses_buffer_count;
-		parentheses_buffer **buffer_info;
+			string_buffer_count;
+		string_buffer **buffer_info;
 	} expression;
 	lex_process_functions *process_functions;
 	void *private;
@@ -416,13 +442,15 @@ bool token_is_keyword(Token *, const char *);
 bool tolen_is_symbol(Token *, char);
 bool token_is_nl_or_comment_or_new_line(Token *);
 bool token_is_primitive(Token *token);
-bool token_is_operator(Token* token,char* op);
+bool token_is_operator(Token *token, char *op);
+void free_token(Token *token);
 
-// in file parenthese_buffer.c
-parentheses_buffer *creat_parentheses_buffer();
-void write(parentheses_buffer *, char);
-char **get_buffer(parentheses_buffer *);
-void free_buffer(parentheses_buffer *);
+// in file string_buffer.c
+string_buffer *creat_string_buffer();
+void write(string_buffer *, char);
+char *get_buffer(string_buffer *);
+void free_buffer(string_buffer *);
+void free_buffer_without_string(string_buffer *buffer);
 
 // in file parser.c
 int parse(compile_process *);
@@ -442,10 +470,13 @@ Node *make_exp_node(Node *left, Node *right, char *op);
 
 //in file datatype.c
 bool datatype_is_struct_or_union_for_name(Token *token);
+void free_datatype(DataType* datatype);
+void free_datatype_in_heap(DataType* datatype);
 
 //in file scope.c
 Scope *scope_alloc();
 void free_scope(Scope *scope);
+void free_scope_with_root(Scope *root, Scope *current);
 Scope *scope_creat_root(compile_process *process);
 void scope_free_root(compile_process *process);
 Scope *scope_new(compile_process *process, int flag);
@@ -459,5 +490,16 @@ void *scope_last_entity(compile_process *process);
 void scope_push(compile_process *process, void *ptr, size_t size);
 void scope_finish(compile_process *process);
 Scope *scope_current(compile_process *process);
+
+//in file symresolver.c
+void symresolver_push(compile_process *process, Symble *symble);
+void free_symble(Symble *symble);
+void free_table(compile_process *process);
+void free_tables(compile_process *process);
+void symresolver_initialize(compile_process *process);
+void symresolver_new_table(compile_process *process);
+void symresolver_end_table(compile_process *process);
+Symble *symresolver_get_symble_by_name(compile_process *process,const char* name);
+Symble *symresolver_get_symble_for_native_function_by_name(compile_process *process, const char* name);
 
 #endif

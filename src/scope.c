@@ -11,6 +11,32 @@ Scope *scope_alloc()
 
 void free_scope(Scope *scope)
 {
+	free_mound(scope->entities);
+	if(scope->parent)
+	{
+		free_scope(scope->parent);
+	}
+}
+
+void free_scope_with_root(Scope *root, Scope *current)
+{
+	bool RootIsInCurrent = false;
+	for(Scope *parent = current->parent;parent;parent = parent->parent)
+	{
+		if(parent == root)
+		{
+			RootIsInCurrent = true;
+		}
+	}
+	if(RootIsInCurrent)
+	{
+		free_scope(current);
+	}
+	else
+	{
+		free_scope(current);
+		free_scope(root);
+	}
 }
 
 Scope *scope_creat_root(compile_process *process)
@@ -26,7 +52,7 @@ Scope *scope_creat_root(compile_process *process)
 
 void scope_free_root(compile_process *process)
 {
-	free_scope(process->scope.root);
+	free_scope_with_root(process->scope.root, process->scope.current);
 	process->scope.root = NULL;
 	process->scope.current = NULL;
 }

@@ -211,7 +211,7 @@ static bool is_keyword_variable_modifier(const char *var)
 		   S_EQ(var, "extern");
 }
 
-void parse_datatype_modeifier(datatype *DataType)
+void parse_datatype_modeifier(DataType *datatype)
 {
 	Token *token = peek_token();
 	while (token && token->type == TOKEN_TYPE_KEYWORDS)
@@ -221,23 +221,23 @@ void parse_datatype_modeifier(datatype *DataType)
 
 		if (S_EQ(token->sval, "signed"))
 		{
-			DataType->flag |= DATATYPE_FLAG_SIGNED;
+			datatype->flag |= DATATYPE_FLAG_SIGNED;
 		}
 		else if (S_EQ(token->sval, "unsigned"))
 		{
-			DataType->flag &= ~DATATYPE_FLAG_SIGNED;
+			datatype->flag &= ~DATATYPE_FLAG_SIGNED;
 		}
 		else if (S_EQ(token->sval, "static"))
 		{
-			DataType->flag |= DATATYPE_FLAG_STATIC;
+			datatype->flag |= DATATYPE_FLAG_STATIC;
 		}
 		else if (S_EQ(token->sval, "const"))
 		{
-			DataType->flag |= DATATYPE_FLAG_CONST;
+			datatype->flag |= DATATYPE_FLAG_CONST;
 		}
 		else if (S_EQ(token->sval, "extern"))
 		{
-			DataType->flag |= DATATYPE_FLAG_EXTERN;
+			datatype->flag |= DATATYPE_FLAG_EXTERN;
 		}
 
 		next_token();
@@ -314,49 +314,52 @@ bool parse_datatype_is_secondary_allow_for_type(Token* type)
 	return S_EQ(type->sval,"long") || S_EQ(type->sval,"short") || S_EQ(type->sval,"double");
 }
 
+void parse_datatype_init_type_and_size_for_primitive(Token* type,Token* secondary,DataType* out);
+
 size_t parse_datatype_get_the_size_of_this_combination(int type1,int type2)
 {
-	size_t out;
-	switch(type1+type2)
-	{
-		case DATA_TYPE_SHORT+DATA_TYPE_INT:
-			out = WORD;
-			break;
-		case DATA_TYPE_LONG+DATA_TYPE_INT:
-			out = DWORD;
-			break;
-		case DATA_TYPE_LONG+DATA_TYPE_LONG:
-			out = QWORD;
-			break;
-		case DATA_TYPE_DOUBLE+DATA_TYPE_LONG:
-			out = DQWORD;
-			break;
-		default:
-			compile_error(current_process,"There isn’t have such combination\n");
-	}
-	return out;
+		size_t out;
+		switch(type1+type2)
+		{
+			case DATA_TYPE_LONG+DATA_TYPE_LONG:
+				out = QWORD;
+				break;
+			case DATA_TYPE_DOUBLE+DATA_TYPE_LONG:
+				out = DQWORD;
+				break;
+			default:
+				compile_error(current_process,"There isn’t have such combination\n");
+		}
+		return out;
 }
 
-void parse_datatype_init_type_and_size_for_primitive(Token* type,Token* secondary,datatype* out);
-
-void parse_datatype_adjust_size_for_primitive(datatype* out)
+void parse_datatype_adjust_size_for_primitive(DataType* out)
 {
-	out->size = parse_datatype_get_the_size_of_this_combination(out->type,out->secondary->type);
+	if(out->type == DATA_TYPE_INT && out->type == DATA_TYPE_INT)
+	{
+		compile_error(current_process, "Doesn’t have data type \"int int\"");
+	}
+	if(out->secondary && out->secondary->type == DATA_TYPE_INT)
+	{
+		return;
+	}
+	out->size = parse_datatype_get_the_size_of_this_combination(out->type, out->secondary->type);
 }
 
-void parse_datatype_adjust_type_and_size_for_primitive(Token* secondary,datatype* out)
+void parse_datatype_adjust_type_and_size_for_primitive(Token* secondary,DataType* out)
 {
 	if(!secondary)
 	{
 		return;
 	}
-	datatype* secondary_data_type = calloc(1,sizeof(datatype));
+	DataType* secondary_data_type = calloc(1,sizeof(DataType));
 	parse_datatype_init_type_and_size_for_primitive(secondary,NULL,secondary_data_type);
+	secondary_data_type->type_str = secondary->sval;
 	out->secondary = secondary_data_type;
 	parse_datatype_adjust_size_for_primitive(out);
 }
 
-void parse_datatype_init_type_and_size_for_primitive(Token* type,Token* secondary,datatype* out)
+void parse_datatype_init_type_and_size_for_primitive(Token* type,Token* secondary,DataType* out)
 {
 	if(!parse_datatype_is_secondary_allow_for_type(type) && secondary)
 	{
@@ -405,7 +408,7 @@ void parse_datatype_init_type_and_size_for_primitive(Token* type,Token* secondar
 	parse_datatype_adjust_type_and_size_for_primitive(secondary,out);
 }
 
-void parse_datatype_init_type_and_size(Token* type,Token* secondary,datatype* out,int pointer_depth,int expected_type)
+void parse_datatype_init_type_and_size(Token* type,Token* secondary,DataType* out,int pointer_depth,int expected_type)
 {
 	if(!parse_datatype_is_secondary_allow(expected_type) && secondary)
 	{
@@ -426,15 +429,20 @@ void parse_datatype_init_type_and_size(Token* type,Token* secondary,datatype* ou
 			compile_error(current_process,"Structures and unions are not supported just now.\n");
 			break;
 	}
+	if(pointer_depth > 0)
+	{
+		out->flag |= DATATYPE_FLAG_POINTER;
+		out->pointer_depth = pointer_depth;
+	}
 }
 
-void parse_datatype_init(Token* type,Token* secondary,datatype* out,int pointer_depth,int expected_type)
+void parse_datatype_init(Token* type,Token* secondary,DataType* out,int pointer_depth,int expected_type)
 {
 	parse_datatype_init_type_and_size(type,secondary,out,pointer_depth,expected_type);
 	out->type_str = type->sval;
 }
 
-void parse_datatype_type(datatype *DataType)
+void parse_datatype_type(DataType *datatype)
 {
 	Token *type_token = NULL, *secondary_token = NULL;
 	parse_get_token_data_type(&type_token, &secondary_token);
@@ -448,29 +456,72 @@ void parse_datatype_type(datatype *DataType)
 		else
 		{
 			type_token = parse_random_id_for_struct_or_union();
-			DataType->flag |= DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME;
+			datatype->flag |= DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME;
 		}
 	}
 	int pointer_depth = parse_get_pointer_depth();
-	parse_datatype_init(type_token,secondary_token,DataType,pointer_depth,expected_type);
+	parse_datatype_init(type_token,secondary_token,datatype,pointer_depth,expected_type);
 }
 
-void parse_datatype(datatype **DataType)
+void parse_datatype(DataType *datatype)
 {
-	*DataType = calloc(1, sizeof(datatype));
-	(*DataType)->flag |= DATATYPE_FLAG_SIGNED;
+	//*DataType = calloc(1, sizeof(datatype));
+	datatype->flag |= DATATYPE_FLAG_SIGNED;
 
-	parse_datatype_modeifier(*DataType);
-	parse_datatype_type(*DataType);
-	parse_datatype_modeifier(*DataType);
+	parse_datatype_modeifier(datatype);
+	parse_datatype_type(datatype);
+	parse_datatype_modeifier(datatype);
+}
+
+void parse_expressionable_root(History* history);
+
+void parse_variable_node(DataType *datatype, Token *token, Node *value)
+{
+	char *name_str = NULL;
+	if(token)
+	{
+		name_str = token->sval;
+	}
+
+	node_creat(&(Node){.type = NODE_TYPE_VARIABLE, .var.datatype = *datatype, .var.name = name_str, .var.value = value});
+}
+
+void parse_variable_node_and_register(DataType *datatype, Token *name, Node* value)
+{
+	parse_variable_node(datatype, name, value);
+	Node *variable_node = pop_node();
+
+	#warning "Don’t remember add offset"
+
+	push_node(variable_node);
+}
+
+void parse_variable(DataType *datatype, Token *name, History *history)
+{
+	Node* value_node = NULL;
+	if(this_token_is_operator("="))
+	{
+		next_token();
+		parse_expressionable_root(history);
+		value_node = pop_node();
+	}
+	parse_variable_node_and_register(datatype, name, value_node);
 }
 
 void parse_variable_function_or_struct_union(History *history)
 {
-	datatype *DataType;
-	parse_datatype(&DataType);
-	#warning "The data type isn’t into node and don’t pushed"
-	free(DataType);
+	DataType datatype = {0};
+	parse_datatype(&datatype);
+
+	Token *token = next_token();
+	if(token->type != TOKEN_TYPE_IDENTIFIER)
+	{
+		compile_error(current_process, "the variable name must is identifier");
+	}
+
+	parse_variable(&datatype, token, history);
+
+	//free(DataType);
 }
 
 void parse_keyword(History *history)
@@ -517,10 +568,19 @@ void parse_expressionable(History *history)
 	free_history(history);
 }
 
+void parse_expressionable_root(History *history)
+{
+	parse_expressionable(history);
+	Node *result_node = pop_node();
+	push_node(result_node);
+}
+
 void parse_keyword_for_global()
 {
 	parse_keyword(history_begin(0));
 	Node *node = pop_node();
+
+	push_node(node);
 }
 
 int parse_next()
@@ -553,8 +613,8 @@ int parse(compile_process *process)
 {
 	current_process = process;
 	set_peek(process->tokens, 0);
-	set_mound(current_process->node, current_process->node_tree);
-	get_count(process->tokens);
+//	set_mound(current_process->node, current_process->node_tree);
+//	get_count(process->tokens);
 	Node *node = NULL;
 	while (!parse_next())
 	{
