@@ -19,14 +19,30 @@ void free_node(Node *data)
 	if (data->type == NODE_TYPE_VARIABLE)
 	{
 		free_datatype(&data->var.datatype);
-		free_node(data->var.value);
+		if(data->var.value)
+			free_node(data->var.value);
+	}
+	if (data->type == NODE_TYPE_VARIABLE_LIST)
+	{
+		set_peek(data->var_list.list, 0);
+		Node *node = next_ptr(data->var_list.list);
+		while(node)
+		{
+			free_node(node);
+			node = next_ptr(data->var_list.list);
+		}
+		free_mound(data->var_list.list);
 	}
 	if (data->type == NODE_TYPE_EXPRESSION)
 	{
 		free_node(data->exp.node_left);
 		free_node(data->exp.node_right);
-		return;
 	}
+	if (data->type == NODE_TYPE_BRACKET)
+	{
+		free_node(data->brackets.inner);
+	}
+	free(data);
 }
 
 void free_nodes()
@@ -138,6 +154,11 @@ Node *make_exp_node(Node *left, Node *right, char *op)
 	assert(left);
 	assert(right);
 	return node_creat(&(Node){.type = NODE_TYPE_EXPRESSION, .exp.node_left = left, .exp.node_right = right, .exp.op = op});
+}
+
+Node *make_bracket_node(Node *node)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_BRACKET, .brackets.inner = node});
 }
 
 Node *node_creat(Node *_node)

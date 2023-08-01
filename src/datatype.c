@@ -6,10 +6,15 @@ bool datatype_is_struct_or_union_for_name(Token *token)
 	return S_EQ(type,"union") || S_EQ(type,"struct");
 }
 
+DataType *last = NULL;
+
 void free_datatype_in_heap(DataType *datatype)
 {
-	free_datatype(datatype);
-	free(datatype);
+	if(last != datatype){
+		free_datatype(datatype);
+		free(datatype);
+		last = datatype;
+	}
 }
 
 void free_datatype(DataType *datatype)
@@ -24,5 +29,9 @@ void free_datatype(DataType *datatype)
 	else if(datatype->type == DATA_TYPE_UNION)
 	{
 		free_node(datatype->union_node);
+	}
+	if(datatype->flag & DATATYPE_FLAG_ARRAY)
+	{
+		free_array_brackets(datatype->array.brackets);
 	}
 }

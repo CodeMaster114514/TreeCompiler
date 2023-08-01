@@ -222,6 +222,12 @@ typedef struct DataType DataType;
 struct Node;
 typedef struct Node Node;
 
+typedef struct
+{
+	//save Node *
+	mound *n_brackets;
+} ArrayBrackets;
+
 struct DataType
 {
 	int type;
@@ -241,6 +247,13 @@ struct DataType
 		Node *struct_node;
 		Node *union_node;
 	};
+
+	struct
+	{
+		ArrayBrackets *brackets;
+
+		size_t size;
+	} array;
 };
 
 struct Node
@@ -265,6 +278,16 @@ struct Node
 			char *name;
 			Node *value;
 		}var;
+
+		struct
+		{
+			mound *list;
+		} var_list;
+
+		struct
+		{
+			Node *inner;
+		} brackets;
 	};
 
 	struct node_binded
@@ -439,7 +462,7 @@ lex_process *lex_token_build_for_string(
 
 // in file token.c
 bool token_is_keyword(Token *, const char *);
-bool tolen_is_symbol(Token *, char);
+bool token_is_symbol(Token *, char);
 bool token_is_nl_or_comment_or_new_line(Token *);
 bool token_is_primitive(Token *token);
 bool token_is_operator(Token *token, char *op);
@@ -467,6 +490,7 @@ Node *node_creat(Node *_node);
 Node *node_peek_expressionable();
 bool node_is_expressionable(Node *node);
 Node *make_exp_node(Node *left, Node *right, char *op);
+Node *make_bracket_node(Node* node);
 
 //in file datatype.c
 bool datatype_is_struct_or_union_for_name(Token *token);
@@ -501,5 +525,13 @@ void symresolver_new_table(compile_process *process);
 void symresolver_end_table(compile_process *process);
 Symble *symresolver_get_symble_by_name(compile_process *process,const char* name);
 Symble *symresolver_get_symble_for_native_function_by_name(compile_process *process, const char* name);
+
+//in file array.c
+ArrayBrackets *new_array_brackets();
+void free_array_brackets(ArrayBrackets *brackets);
+void array_brackets_add(ArrayBrackets *brackets, Node *node);
+size_t array_brackets_calculate_size_from_index(DataType *datatype, int index);
+size_t array_brackets_calculate_size(DataType *datatype);
+int array_total_indexes(DataType *datatype);
 
 #endif

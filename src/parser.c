@@ -44,6 +44,10 @@ static void parse_nl_or_comment(Token *token)
 static Token *next_token()
 {
 	Token *next_token = peek(current_process->tokens);
+	if(!next_token)
+	{
+		return NULL;
+	}
 	parse_nl_or_comment(next_token);
 	current_process->pos = next_token->pos;
 	parse_last_token = next_token;
@@ -55,6 +59,24 @@ static Token *peek_token()
 	Token *next_token = peek(current_process->tokens);
 	parse_nl_or_comment(next_token);
 	return peek(current_process->tokens);
+}
+
+static void expect_sym(char c)
+{
+	Token *token = next_token();
+	if (!token || token->type != TOKEN_TYPE_SYMBOL || token->cval != c)
+	{
+		compile_error(current_process, "Expect the symbol \"%c\" however, other symbols are provided.\n", c);
+	}
+}
+
+static void expect_op(char *s)
+{
+	Token *token = next_token();
+	if (!token || token->type != TOKEN_TYPE_OPERATOR || !S_EQ(token->sval, s))
+	{
+		compile_error(current_process, "Expect the symbole \"%s\" however, other operator are provided.\n", s);
+	}
 }
 
 bool this_token_is_operator(char* op)
@@ -178,7 +200,7 @@ void parse_exp_normal(History *history)
 	// 弹出左节点
 	pop_node();
 	node_left->flag |= NODE_FLAG_INSIDE_EXPRESSION;
-	parse_expressionable_for_op(history_down(history, history->flag), op);
+	parse_expressionable_for_op(history, op);
 	Node *node_right = pop_node();
 	node_right->flag |= NODE_FLAG_INSIDE_EXPRESSION;
 	make_exp_node(node_left, node_right, op);
@@ -496,15 +518,55 @@ void parse_variable_node_and_register(DataType *datatype, Token *name, Node* val
 	push_node(variable_node);
 }
 
+void make_variable_list_node(mound *var_list)
+{
+	node_creat(&(Node){.type = NODE_TYPE_VARIABLE_LIST, .var_list.list = var_list});
+}
+
+ArrayBrackets *parse_array_brackets(History *history)
+{
+	ArrayBrackets *bracket = new_array_brackets();
+	while(this_token_is_operator("["))
+	{
+		expect_op("[");
+		if(token_is_symbol(peek_token(), ']'))
+		{
+			expect_sym(']');
+			break;
+		}
+
+		parse_expressionable_root(history);
+		Node *exp_node = pop_node();
+		expect_sym(']');
+
+		make_bracket_node(exp_node);
+		Node *bracket_node = pop_node();
+		array_brackets_add(bracket, bracket_node);
+	}
+
+	return bracket;
+}
+
 void parse_variable(DataType *datatype, Token *name, History *history)
 {
 	Node* value_node = NULL;
+
+	ArrayBrackets *brackets = NULL;
+	if(this_token_is_operator("["))
+	{
+		brackets = parse_array_brackets(history);
+		datatype->array.brackets = brackets;
+		datatype->flag |= DATATYPE_FLAG_ARRAY;
+		datatype->array.size = array_brackets_calculate_size(datatype);
+	}
+
 	if(this_token_is_operator("="))
 	{
 		next_token();
 		parse_expressionable_root(history);
 		value_node = pop_node();
 	}
+	
 	parse_variable_node_and_register(datatype, name, value_node);
 }
 
@@ -519,7 +581,32 @@ void parse_variable_function_or_struct_union(History *history)
 		compile_error(current_process, "the variable name must is identifier");
 	}
 
-	parse_variable(&datatype, token, history);
+	parse_variable(&datatype, token, history_down(history, history->flag));
+
+	if(this_token_is_operator(","))
+	{
+		mound *var_list = creat_mound(sizeof(Node *));
+		Node *var = pop_node();
+		push(var_list, &var);
+		while(this_token_is_operator(","))
+		{
+			next_token();
+			token = next_token();
+			if(token->type != TOKEN_TYPE_IDENTIFIER)
+			{
+				compile_error(current_process, "the variable name must is identifier");
+			}
+			
+			parse_variable(&datatype, token, history);
+			var = pop_node();
+			push(var_list, &var);
+		}
+
+		make_variable_list_node(var_list);
+	}
+
+	expect_sym(';');
+	free_history(history);
 
 	//free(DataType);
 }
@@ -563,15 +650,14 @@ int parse_expressionable_single(History *history)
 
 void parse_expressionable(History *history)
 {
-	while (parse_expressionable_single(history) == 0)
-		;
-	free_history(history);
+	while (parse_expressionable_single(history) == 0);
 }
 
 void parse_expressionable_root(History *history)
 {
 	parse_expressionable(history);
 	Node *result_node = pop_node();
+
 	push_node(result_node);
 }
 
@@ -596,7 +682,8 @@ int parse_next()
 	case TOKEN_TYPE_NUMBER:
 	case TOKEN_TYPE_IDENTIFIER:
 	case TOKEN_TYPE_STRING:
-		parse_expressionable(history_begin(0));
+		History *history = history_begin(0);
+		parse_expressionable(history);
 		break;
 	case TOKEN_TYPE_NEWLINE:
 	case TOKEN_TYPE_COMMENT:

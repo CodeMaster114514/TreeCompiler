@@ -39,7 +39,7 @@ void lex_process_free(lex_process *process)
 	free(process->expression.buffer_info);
 	free_tokens(process);
 	free_mound(process->tokens);
-	if (!process->private)
+	if (process->private)
 		free(process->private);
 	free(process);
 }
