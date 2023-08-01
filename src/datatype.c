@@ -1,5 +1,10 @@
 #include "compiler.h"
 
+bool data_type_is_struct_or_union(DataType *datatype)
+{
+	return datatype->type == DATA_TYPE_STRUCT || datatype->type == DATA_TYPE_UNION;
+}
+
 bool datatype_is_struct_or_union_for_name(Token *token)
 {
 	char* type = token->sval;

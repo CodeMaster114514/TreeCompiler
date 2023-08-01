@@ -61,6 +61,16 @@ static Token *peek_token()
 	return peek(current_process->tokens);
 }
 
+void parse_scope_new()
+{
+	scope_new(current_process, 0);
+}
+
+void parse_scope_finish()
+{
+	scope_finish(current_process);
+}
+
 static void expect_sym(char c)
 {
 	Token *token = next_token();
@@ -446,8 +456,8 @@ void parse_datatype_init_type_and_size(Token* type,Token* secondary,DataType* ou
 			if(type->flags & TOKEN_FLAG_FROM_PARSER)
 			{
 				free(type->sval);
-				free(type);
 			}
+			free(type);
 			compile_error(current_process,"Structures and unions are not supported just now.\n");
 			break;
 	}
@@ -513,7 +523,7 @@ void parse_variable_node_and_register(DataType *datatype, Token *name, Node* val
 	parse_variable_node(datatype, name, value);
 	Node *variable_node = pop_node();
 
-	#warning "Don’t remember add offset"
+	#warning "Don't remember add offset"
 
 	push_node(variable_node);
 }
@@ -570,10 +580,52 @@ void parse_variable(DataType *datatype, Token *name, History *history)
 	parse_variable_node_and_register(datatype, name, value_node);
 }
 
+void parse_struct_no_scope()
+{
+}
+
+void parse_struct(DataType *datatype)
+{
+	bool isFordDeclaration = !token_is_symbol(peek_token(), '{');
+	if (!isFordDeclaration)
+	{
+		parse_scope_new();
+	}
+
+	parse_struct_no_scope(datatype);
+
+	if (!isFordDeclaration)
+	{
+		parse_scope_finish();
+	}
+}
+
+void parse_struct_or_union(DataType *datatype)
+{
+	switch (datatype->type)
+	{
+	case DATA_TYPE_STRUCT:
+		parse_struct(datatype);
+		break;
+
+	case DATA_TYPE_UNION:
+		break;
+	
+	default:
+		compile_error(current_process, "BUG: Compiler failed creat data type");
+		break;
+	}
+}
+
 void parse_variable_function_or_struct_union(History *history)
 {
 	DataType datatype = {0};
 	parse_datatype(&datatype);
+
+	if(data_type_is_struct_or_union(&datatype))
+	{
+		parse_struct_or_union(&datatype);
+	}
 
 	Token *token = next_token();
 	if(token->type != TOKEN_TYPE_IDENTIFIER)
@@ -676,14 +728,16 @@ int parse_next()
 	{
 		return -1;
 	}
+	History *history;
 	int res = 0;
 	switch (token->type)
 	{
 	case TOKEN_TYPE_NUMBER:
 	case TOKEN_TYPE_IDENTIFIER:
 	case TOKEN_TYPE_STRING:
-		History *history = history_begin(0);
+		history = history_begin(0);
 		parse_expressionable(history);
+		free_history(history);
 		break;
 	case TOKEN_TYPE_NEWLINE:
 	case TOKEN_TYPE_COMMENT:

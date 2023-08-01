@@ -288,6 +288,16 @@ struct Node
 		{
 			Node *inner;
 		} brackets;
+
+		struct
+		{
+			char *name;
+
+			Node *n_body;
+
+			Node *var_name;
+		} _struct;
+		
 	};
 
 	struct node_binded
@@ -358,7 +368,9 @@ struct scope
 
 	size_t total;
 
-	Scope* parent;
+	Scope *parent;
+	
+	mound *sub;
 };
 
 #define TOTAL_OPERATOR_GROUPS 14
@@ -493,6 +505,7 @@ Node *make_exp_node(Node *left, Node *right, char *op);
 Node *make_bracket_node(Node* node);
 
 //in file datatype.c
+bool data_type_is_struct_or_union(DataType *datatype);
 bool datatype_is_struct_or_union_for_name(Token *token);
 void free_datatype(DataType* datatype);
 void free_datatype_in_heap(DataType* datatype);

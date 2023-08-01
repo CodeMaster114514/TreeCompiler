@@ -3,7 +3,8 @@
 Scope *scope_alloc()
 {
 	Scope* scope = calloc(1,sizeof(Scope));
-	scope->entities = creat_mound(sizeof(void*));
+	scope->entities = creat_mound(sizeof(void *));
+	scope->sub = creat_mound(sizeof(Scope *));
 	set_peek_in_end(scope->entities);
 	set_flag(scope->entities,MOUND_FLAG_PEEK_DECREMENT);
 	return scope;
@@ -12,10 +13,14 @@ Scope *scope_alloc()
 void free_scope(Scope *scope)
 {
 	free_mound(scope->entities);
-	if(scope->parent)
+	set_peek(scope->sub, 0);
+	Scope *sub = next_ptr(scope->sub);
+	while(sub)
 	{
-		free_scope(scope->parent);
+		free_scope(sub);
+		sub = next_ptr(scope->sub);
 	}
+	free_mound(scope->sub);
 }
 
 void free_scope_with_root(Scope *root, Scope *current)
@@ -65,6 +70,7 @@ Scope *scope_new(compile_process *process, int flag)
 	Scope *new = scope_alloc();
 	new->flag |= flag;
 	new->parent = process->scope.current;
+	push(process->scope.current->sub, new);
 	process->scope.current = new;
 	return new;
 }
