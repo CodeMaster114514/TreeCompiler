@@ -55,10 +55,13 @@ void pop(mound *this)
 {
     --this->count;
     --this->write_p;
-    --this->peek;
-    if (this->peek < 0)
+    if (this->peek > this->count)
     {
-        this->peek = 0;
+        --this->peek;
+    }
+    if(this->peek < 0)
+    {
+	    this->peek = 0;
     }
     assert(noCross(this));
 }

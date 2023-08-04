@@ -291,12 +291,34 @@ struct Node
 
 		struct
 		{
+			//存储结构体名称
 			char *name;
 
+			//存储结构体内容
 			Node *n_body;
 
+			/*
+			 * struct a
+			 * {
+			 * } b;
+			 */
 			Node *var_name;
 		} _struct;
+
+		struct
+		{
+			//存储节点信息
+			mound *statements;
+
+			//在body内所有变量大小之和
+			size_t size;
+
+			//在body中某些变量大小是否受其他变量影响
+			bool padding;
+
+			//指向最大的变量节点
+			Node *largest_variable;
+		} body;
 		
 	};
 
@@ -503,6 +525,8 @@ Node *node_peek_expressionable();
 bool node_is_expressionable(Node *node);
 Node *make_exp_node(Node *left, Node *right, char *op);
 Node *make_bracket_node(Node* node);
+Node *make_variable_list_node(mound *var_list);
+Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_variable);
 
 //in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

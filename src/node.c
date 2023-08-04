@@ -2,6 +2,7 @@
 
 static mound *node = NULL;
 static mound *node_root = NULL;
+Node *parse_current_body = NULL;
 
 void set_mound(mound *node_set, mound *node_root_set)
 {
@@ -156,9 +157,19 @@ Node *make_exp_node(Node *left, Node *right, char *op)
 	return node_creat(&(Node){.type = NODE_TYPE_EXPRESSION, .exp.node_left = left, .exp.node_right = right, .exp.op = op});
 }
 
+Node *make_variable_list_node(mound *var_list)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_VARIABLE_LIST, .var_list.list = var_list});
+}
+
 Node *make_bracket_node(Node *node)
 {
 	return node_creat(&(Node){.type = NODE_TYPE_BRACKET, .brackets.inner = node});
+}
+
+Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_variable)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_BODY, .body.statements = body, .body.size = size, .body.padding = padding, .body.largest_variable = largest_variable});
 }
 
 Node *node_creat(Node *_node)

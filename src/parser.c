@@ -2,8 +2,8 @@
 
 static compile_process *current_process;
 static Token *parse_last_token;
-extern expressionable_operator_precedence_group
-	operator_precendence[TOTAL_OPERATOR_GROUPS];
+extern expressionable_operator_precedence_group operator_precendence[TOTAL_OPERATOR_GROUPS];
+extern Node *parse_current_body;
 
 typedef struct
 {
@@ -91,7 +91,12 @@ static void expect_op(char *s)
 
 bool this_token_is_operator(char* op)
 {
-	return token_is_operator(peek_token(),op);
+	return token_is_operator(peek_token(), op);
+}
+
+bool this_token_is_symbol(char sym)
+{
+	return token_is_symbol(peek_token(), sym);
 }
 
 void parse_single_token_to_node()
@@ -160,9 +165,9 @@ void parse_shift_children_node_left(Node *node)
 	Node *new_left_node = node->exp.node_left;
 	Node *new_right_node = node->exp.node_right->exp.node_left;
 	Node *now_right_node = node->exp.node_right;
-	make_exp_node(new_left_node, new_right_node, node->exp.op);
+	Node *new_left_exp = make_exp_node(new_left_node, new_right_node, node->exp.op);
+	pop_node();
 
-	Node *new_left_exp = pop_node();
 	Node *new_right_exp = node->exp.node_right->exp.node_right;
 
 	// 释放右边表达式节点
@@ -213,8 +218,8 @@ void parse_exp_normal(History *history)
 	parse_expressionable_for_op(history, op);
 	Node *node_right = pop_node();
 	node_right->flag |= NODE_FLAG_INSIDE_EXPRESSION;
-	make_exp_node(node_left, node_right, op);
-	Node *exp_node = pop_node();
+	Node *exp_node = make_exp_node(node_left, node_right, op);
+	pop_node();
 
 	// 重新排序
 	parse_reorder_expression(&exp_node);
@@ -456,8 +461,8 @@ void parse_datatype_init_type_and_size(Token* type,Token* secondary,DataType* ou
 			if(type->flags & TOKEN_FLAG_FROM_PARSER)
 			{
 				free(type->sval);
+				free(type);
 			}
-			free(type);
 			compile_error(current_process,"Structures and unions are not supported just now.\n");
 			break;
 	}
@@ -528,11 +533,6 @@ void parse_variable_node_and_register(DataType *datatype, Token *name, Node* val
 	push_node(variable_node);
 }
 
-void make_variable_list_node(mound *var_list)
-{
-	node_creat(&(Node){.type = NODE_TYPE_VARIABLE_LIST, .var_list.list = var_list});
-}
-
 ArrayBrackets *parse_array_brackets(History *history)
 {
 	ArrayBrackets *bracket = new_array_brackets();
@@ -549,8 +549,8 @@ ArrayBrackets *parse_array_brackets(History *history)
 		Node *exp_node = pop_node();
 		expect_sym(']');
 
-		make_bracket_node(exp_node);
-		Node *bracket_node = pop_node();
+		Node *bracket_node = make_bracket_node(exp_node);
+		pop_node();
 		array_brackets_add(bracket, bracket_node);
 	}
 
@@ -570,7 +570,7 @@ void parse_variable(DataType *datatype, Token *name, History *history)
 		datatype->array.size = array_brackets_calculate_size(datatype);
 	}
 
-	if(this_token_is_operator("="))
+	if (this_token_is_operator("="))
 	{
 		next_token();
 		parse_expressionable_root(history);
@@ -578,6 +578,55 @@ void parse_variable(DataType *datatype, Token *name, History *history)
 	}
 	
 	parse_variable_node_and_register(datatype, name, value_node);
+}
+
+void parse_keyword(History *history);
+
+void parse_symbol()
+{
+	compile_error(current_process, "We didn't finish this function");
+}
+
+void parse_statement(History *history)
+{
+	if(peek_token()->type == TOKEN_TYPE_KEYWORDS)
+	{
+		parse_keyword(history);
+		return;
+	}
+	parse_expressionable_root(history);
+	if(peek_token()->type == TOKEN_TYPE_SYMBOL && this_token_is_symbol(';'))
+	{
+		parse_symbol();
+		return;
+	}
+}
+
+void parse_single_statement(size_t *size, mound *body, History *history)
+{
+	make_body_node(0,NULL,false,NULL);
+	Node *node_body = pop_node();
+	node_body->binded.owner = parse_current_body;
+
+	parse_current_body = node_body;
+
+	parse_current_body = node_body->binded.owner;
+}
+
+void parse_body(size_t *size, History *history)
+{
+	parse_scope_new();
+
+	size_t tmp_size = 0;
+	mound *body = creat_mound(sizeof(Node*));
+
+	if (!size)
+		size = &tmp_size;
+
+	if(this_token_is_symbol('{'))
+		parse_single_statement(size, body, history);
+
+	parse_scope_finish();
 }
 
 void parse_struct_no_scope()

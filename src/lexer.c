@@ -3,6 +3,9 @@
 static lex_process *LexProcess;
 static Token tmp_token;
 
+Token *make_special_number_hexadcimal();
+Token *make_special_number_binary();
+
 bool lex_is_in_expression();
 
 char get_escaped_char(char c)
@@ -178,7 +181,31 @@ Token *make_number_token_for_value(unsigned long number)
 
 Token *make_number_token()
 {
-	return make_number_token_for_value(read_number());
+	Token *number;
+	char now = peekc();//防止丢失第一个数字
+	if (peekc() == '0')
+	{
+		nextc();
+		switch(peekc())
+		{
+			case 'x':
+				number = make_special_number_hexadcimal();
+				break;
+
+			case 'b':
+				number = make_special_number_binary();
+				break;
+
+			default:
+				pushc(now);
+				number = make_number_token_for_value((read_number()));
+		}
+	}
+	else
+	{
+		number = make_number_token_for_value(read_number());
+	}
+	return number;
 }
 
 Token *make_string_token(char start_delim, char end_delim)
@@ -712,39 +739,6 @@ Token *make_special_number_binary()
 		.llnum = llnum});
 }
 
-Token *make_special_number_token()
-{
-	Token *token = NULL;
-	Token *last_token = lexer_last_token();
-	if (last_token && last_token->type == TOKEN_TYPE_NUMBER && last_token->llnum == 0)
-	{
-		if (peekc() == 'x')
-		{
-			token = make_special_number_hexadcimal();
-		}
-		else if (peekc() == 'b')
-		{
-			token = make_special_number_binary();
-		}
-		else
-		{
-			compile_error(LexProcess->cprocess, "Unexpexted token\n");
-		}
-	}
-	else
-	{
-		if(peekc() == 'x' || peekc() == 'b')
-		{
-			compile_error(LexProcess->cprocess, "Unexpexted Token\n");
-		}
-		else
-		{
-			token = read_special_token();
-		}
-	}
-	return token;
-}
-
 Token *read_next_token()
 {
 	Token *token = NULL;
@@ -772,6 +766,7 @@ Token *read_next_token()
 		break;
 
 	case '\n':
+	case '\r':
 		token = make_new_line_token();
 		break;
 
@@ -784,11 +779,6 @@ Token *read_next_token()
 		break;
 
 	case '\377':
-		break;
-
-	case 'b':
-	case 'x':
-		token = make_special_number_token();
 		break;
 
 	default:
