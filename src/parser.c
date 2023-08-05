@@ -600,6 +600,20 @@ void parse_statement(History *history)
 		parse_symbol();
 		return;
 	}
+	expect_sym('{');
+}
+
+void parse_finish_body(History *history, Node *body_node, mound *statement, size_t *size, Node *largset)
+{
+	body_node->body.statements = statement;
+	body_node->body.size = *size;
+	body_node->body.padding = false;
+	body_node->body.largest_variable = largset;
+}
+
+void parse_append_size_for_node(History *history, size_t *size, Node *node)
+{
+	compile_warning(current_process, "parse size isn't finish");
 }
 
 void parse_single_statement(size_t *size, mound *body, History *history)
@@ -610,7 +624,27 @@ void parse_single_statement(size_t *size, mound *body, History *history)
 
 	parse_current_body = node_body;
 
+	Node *statement = NULL;
+	History *secend = history_down(history, history->flag);
+	parse_statement(secend);
+	free_history(secend);
+	statement = pop_node();
+
+	push(body, &statement);
+
+	parse_append_size_for_node(history, size, statement);
+	
+	Node *largest = NULL;
+	if(statement->type == NODE_TYPE_VARIABLE)
+	{
+		largest = statement;
+	}
+
+	parse_finish_body(history, node_body, body, size, largest);
+
 	parse_current_body = node_body->binded.owner;
+
+	push_node(node_body);
 }
 
 void parse_body(size_t *size, History *history)

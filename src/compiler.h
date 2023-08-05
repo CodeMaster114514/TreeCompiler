@@ -139,9 +139,9 @@ enum
 
 typedef struct
 {
-	char* name;
+	char *name;
 	int type;
-	void* data;
+	void *data;
 } Symble;
 
 typedef struct
@@ -168,7 +168,7 @@ typedef struct
 	struct
 	{
 		mound *current_table,
-		      *tables;
+			*tables;
 	} symbles;
 } compile_process;
 
@@ -224,7 +224,7 @@ typedef struct Node Node;
 
 typedef struct
 {
-	//save Node *
+	// save Node *
 	mound *n_brackets;
 } ArrayBrackets;
 
@@ -277,7 +277,7 @@ struct Node
 			DataType datatype;
 			char *name;
 			Node *value;
-		}var;
+		} var;
 
 		struct
 		{
@@ -291,10 +291,10 @@ struct Node
 
 		struct
 		{
-			//存储结构体名称
+			// 存储结构体名称
 			char *name;
 
-			//存储结构体内容
+			// 存储结构体内容
 			Node *n_body;
 
 			/*
@@ -307,19 +307,18 @@ struct Node
 
 		struct
 		{
-			//存储节点信息
+			// 存储节点信息
 			mound *statements;
 
-			//在body内所有变量大小之和
+			// 在body内所有变量大小之和
 			size_t size;
 
-			//在body中某些变量大小是否受其他变量影响
+			// 在body中某些变量大小是否受其他变量影响
 			bool padding;
 
-			//指向最大的变量节点
+			// 指向最大的变量节点
 			Node *largest_variable;
 		} body;
-		
 	};
 
 	struct node_binded
@@ -386,12 +385,12 @@ struct scope
 {
 	int flag;
 
-	mound* entities;//存储数据信息
+	mound *entities; // 存储数据信息
 
 	size_t total;
 
 	Scope *parent;
-	
+
 	mound *sub;
 };
 
@@ -524,17 +523,20 @@ Node *node_creat(Node *_node);
 Node *node_peek_expressionable();
 bool node_is_expressionable(Node *node);
 Node *make_exp_node(Node *left, Node *right, char *op);
-Node *make_bracket_node(Node* node);
+Node *make_bracket_node(Node *node);
 Node *make_variable_list_node(mound *var_list);
 Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_variable);
 
-//in file datatype.c
+// in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);
 bool datatype_is_struct_or_union_for_name(Token *token);
-void free_datatype(DataType* datatype);
-void free_datatype_in_heap(DataType* datatype);
+void free_datatype(DataType *datatype);
+void free_datatype_in_heap(DataType *datatype);
+size_t datatype_element_size(DataType *datatype);
+size_t datatype_size_for_array_access(DataType *datatype);
+size_t datatype_size(DataType *datatype);
 
-//in file scope.c
+// in file scope.c
 Scope *scope_alloc();
 void free_scope(Scope *scope);
 void free_scope_with_root(Scope *root, Scope *current);
@@ -552,7 +554,7 @@ void scope_push(compile_process *process, void *ptr, size_t size);
 void scope_finish(compile_process *process);
 Scope *scope_current(compile_process *process);
 
-//in file symresolver.c
+// in file symresolver.c
 void symresolver_push(compile_process *process, Symble *symble);
 void free_symble(Symble *symble);
 void free_table(compile_process *process);
@@ -560,15 +562,19 @@ void free_tables(compile_process *process);
 void symresolver_initialize(compile_process *process);
 void symresolver_new_table(compile_process *process);
 void symresolver_end_table(compile_process *process);
-Symble *symresolver_get_symble_by_name(compile_process *process,const char* name);
-Symble *symresolver_get_symble_for_native_function_by_name(compile_process *process, const char* name);
+Symble *symresolver_get_symble_by_name(compile_process *process, const char *name);
+Symble *symresolver_get_symble_for_native_function_by_name(compile_process *process, const char *name);
 
-//in file array.c
+// in file array.c
 ArrayBrackets *new_array_brackets();
 void free_array_brackets(ArrayBrackets *brackets);
 void array_brackets_add(ArrayBrackets *brackets, Node *node);
 size_t array_brackets_calculate_size_from_index(DataType *datatype, int index);
 size_t array_brackets_calculate_size(DataType *datatype);
 int array_total_indexes(DataType *datatype);
+
+// in file helper.c
+size_t variable_size(Node *node);
+size_t variable_size_for_list(Node *node);
 
 #endif

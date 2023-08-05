@@ -1,5 +1,5 @@
 METHOR= debug
-OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/mound.o ./build/parser.o ./build/string_buffer.o ./build/node.o ./build/expressionable.o ./build/datatype.o ./build/scope.o ./build/symresolver.o ./build/array.o
+OBJECTS= ./build/compiler.o ./build/process.o ./build/lex_process.o ./build/lexer.o ./build/token.o ./build/mound.o ./build/parser.o ./build/string_buffer.o ./build/node.o ./build/expressionable.o ./build/datatype.o ./build/scope.o ./build/symresolver.o ./build/array.o ./build/helper.o
 INCLUDE= -I./src/
 CODE_LOCATION=./src/
 #LIB_FILE= ./build/libparentheses_buffer.so
@@ -61,6 +61,10 @@ main: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler
 
 ./build/array.o: $(CODE_LOCATION)./array.c $(CODE_LOCATION)./compiler.h
 	$(COMPILER) $(CODE_LOCATION)./array.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/array.o -c
+
+./build/helper.o: $(CODE_LOCATION)./helper.c $(CODE_LOCATION)./compiler.h
+	$(COMPILER) $(CODE_LOCATION)./helper.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/helper.o -c
+
 
 clear:
 	rm ${OBJECTS} ${LIB_FILE} -rf
