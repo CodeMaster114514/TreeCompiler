@@ -10,6 +10,32 @@ void set_mound(mound *node_set, mound *node_root_set)
 	node_root = node_root_set;
 }
 
+void free_node(Node *data);
+
+void free_variable_list_node(Node *data)
+{
+	set_peek(data->var_list.list, 0);
+	Node *node = next_ptr(data->var_list.list);
+	while (node)
+	{
+		free_node(node);
+		node = next_ptr(data->var_list.list);
+	}
+	free_mound(data->var_list.list);
+}
+
+void free_body_node(Node *data)
+{
+	set_peek(data->body.statements, 0);
+	Node *node = next_ptr(data->body.statements);
+	while (node)
+	{
+		free_node(node);
+		node = next_ptr(data->body.statements);
+	}
+	free_mound(data->body.statements);
+}
+
 void free_node(Node *data)
 {
 	if (data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER)
@@ -20,19 +46,12 @@ void free_node(Node *data)
 	if (data->type == NODE_TYPE_VARIABLE)
 	{
 		free_datatype(&data->var.datatype);
-		if(data->var.value)
+		if (data->var.value)
 			free_node(data->var.value);
 	}
 	if (data->type == NODE_TYPE_VARIABLE_LIST)
 	{
-		set_peek(data->var_list.list, 0);
-		Node *node = next_ptr(data->var_list.list);
-		while(node)
-		{
-			free_node(node);
-			node = next_ptr(data->var_list.list);
-		}
-		free_mound(data->var_list.list);
+		free_variable_list_node(data);
 	}
 	if (data->type == NODE_TYPE_EXPRESSION)
 	{
@@ -42,6 +61,16 @@ void free_node(Node *data)
 	if (data->type == NODE_TYPE_BRACKET)
 	{
 		free_node(data->brackets.inner);
+	}
+	if (data->type == NODE_TYPE_STRUCT)
+	{
+		free_node(data->_struct.n_body);
+		if (data->_struct.var_name)
+			free_node(data->_struct.var_name);
+	}
+	if (data->type == NODE_TYPE_BODY)
+	{
+		free_body_node(data);
 	}
 	free(data);
 }
@@ -182,7 +211,7 @@ Node *node_creat(Node *_node)
 
 bool node_is_struct_or_union(Node *node)
 {
-	if(node->type != NODE_TYPE_VARIABLE)
+	if (node->type != NODE_TYPE_VARIABLE)
 	{
 		return false;
 	}

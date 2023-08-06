@@ -235,7 +235,14 @@ void parse_exp_normal(History *history)
 
 int parse_exp(History *history)
 {
-	parse_exp_normal(history);
+	if (S_EQ(peek_token()->sval, ","))
+	{
+		return -1;
+	}
+	else
+	{
+		parse_exp_normal(history);
+	}
 	return 0;
 }
 
