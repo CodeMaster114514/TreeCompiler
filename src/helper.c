@@ -88,7 +88,7 @@ int compute_sum_padding(mound *nodes)
         }
         else if (current_node->type == NODE_TYPE_VARIABLE_LIST)
         {
-            padding += cumpute_sum_padding(current_node->var_list.list);
+            padding += compute_sum_padding(current_node->var_list.list);
             last_type = -1;
             goto over;
         }
