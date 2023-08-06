@@ -20,3 +20,68 @@ size_t variable_size_for_list(Node *node)
 
     return size;
 }
+
+int padding(int value, int to)
+{
+    if (to <= 0)
+    {
+        return 0;
+    }
+
+    if ((value % to) == 0)
+    {
+        return 0;
+    }
+
+    return to - (value % to) % to;
+}
+
+int align_value(int value, int to)
+{
+    if (value && to)
+    {
+        value += padding(value, to);
+    }
+
+    return value;
+}
+
+int align_value_treat_positive(int value, int to)
+{
+    assert(to >= 0);
+    if (value < 0)
+    {
+        to = -to;
+    }
+
+    return align_value(value, to);
+}
+
+int cumpute_sum_padding(mound *nodes)
+{
+    int padding = 0, last_type = -1;
+    bool isMixedType = false;
+    set_peek(nodes, 0);
+    Node *current_node = next_ptr(nodes), *last_node = NULL;
+    while (current_node)
+    {
+        if (current_node->type != NODE_TYPE_VARIABLE)
+        {
+            current_node = next_ptr(nodes);
+            continue;
+        }
+        else if (current_node->type == NODE_TYPE_VARIABLE_LIST)
+        {
+            padding += cumpute_sum_padding(current_node->var_list.list);
+            last_type = -1;
+            goto over;
+        }
+
+        padding += current_node->var.padding;
+        last_type = current_node->var.datatype.type;
+    over:
+        last_node = current_node;
+        current_node = next_ptr(nodes);
+    }
+    return padding;
+}

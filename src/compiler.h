@@ -275,6 +275,7 @@ struct Node
 		struct
 		{
 			DataType datatype;
+			int padding;
 			char *name;
 			Node *value;
 		} var;
@@ -576,5 +577,9 @@ int array_total_indexes(DataType *datatype);
 // in file helper.c
 size_t variable_size(Node *node);
 size_t variable_size_for_list(Node *node);
+int padding(int value, int to);
+int align_value(int value, int to);
+int align_value_treat_positive(int value, int to);
+int cumpute_sum_padding(mound *nodes);
 
 #endif
