@@ -5,6 +5,12 @@ static Token *parse_last_token;
 extern expressionable_operator_precedence_group operator_precendence[TOTAL_OPERATOR_GROUPS];
 extern Node *parse_current_body;
 
+enum
+{
+	HISTORY_FLAG_INSIDE_UNION = 0b00000001,
+	HISTORY_FLAG_INSIDE_STRUCT = 0b00000010
+};
+
 typedef struct
 {
 	int flag;
@@ -44,7 +50,7 @@ static void parse_nl_or_comment(Token *token)
 static Token *next_token()
 {
 	Token *next_token = peek(current_process->tokens);
-	if(!next_token)
+	if (!next_token)
 	{
 		return NULL;
 	}
@@ -89,7 +95,7 @@ static void expect_op(char *s)
 	}
 }
 
-bool this_token_is_operator(char* op)
+bool this_token_is_operator(char *op)
 {
 	return token_is_operator(peek_token(), op);
 }
@@ -309,7 +315,7 @@ int parse_datatype_expected_for_type(Token *token)
 int parse_get_pointer_depth()
 {
 	int depth = 0;
-	while(this_token_is_operator("*"))
+	while (this_token_is_operator("*"))
 	{
 		++depth;
 		next_token();
@@ -323,18 +329,18 @@ int get_id()
 	return x++;
 }
 
-char* random_id()
+char *random_id()
 {
 	char id[25];
-	sprintf(id,"id_of_%i",get_id());
-	char* ret_id = malloc(sizeof(id));
-	memcpy(ret_id,id,sizeof(id));
+	sprintf(id, "id_of_%i", get_id());
+	char *ret_id = malloc(sizeof(id));
+	memcpy(ret_id, id, sizeof(id));
 	return ret_id;
 }
 
-Token* parse_random_id_for_struct_or_union()
+Token *parse_random_id_for_struct_or_union()
 {
-	Token* token = calloc(1,sizeof(Token));
+	Token *token = calloc(1, sizeof(Token));
 	token->type = TOKEN_TYPE_IDENTIFIER;
 	token->flags |= TOKEN_FLAG_FROM_PARSER;
 	token->sval = random_id();
@@ -346,136 +352,136 @@ bool parse_datatype_is_secondary_allow(int expected_type)
 	return expected_type == DATA_TYPE_EXPECT_PRIMITIVE;
 }
 
-bool parse_datatype_is_secondary_allow_for_type(Token* type)
+bool parse_datatype_is_secondary_allow_for_type(Token *type)
 {
-	return S_EQ(type->sval,"long") || S_EQ(type->sval,"short") || S_EQ(type->sval,"double");
+	return S_EQ(type->sval, "long") || S_EQ(type->sval, "short") || S_EQ(type->sval, "double");
 }
 
-void parse_datatype_init_type_and_size_for_primitive(Token* type,Token* secondary,DataType* out);
+void parse_datatype_init_type_and_size_for_primitive(Token *type, Token *secondary, DataType *out);
 
-size_t parse_datatype_get_the_size_of_this_combination(int type1,int type2)
+size_t parse_datatype_get_the_size_of_this_combination(int type1, int type2)
 {
-		size_t out;
-		switch(type1+type2)
-		{
-			case DATA_TYPE_LONG+DATA_TYPE_LONG:
-				out = QWORD;
-				break;
-			case DATA_TYPE_DOUBLE+DATA_TYPE_LONG:
-				out = DQWORD;
-				break;
-			default:
-				compile_error(current_process,"There isn’t have such combination\n");
-		}
-		return out;
+	size_t out;
+	switch (type1 + type2)
+	{
+	case DATA_TYPE_LONG + DATA_TYPE_LONG:
+		out = QWORD;
+		break;
+	case DATA_TYPE_DOUBLE + DATA_TYPE_LONG:
+		out = DQWORD;
+		break;
+	default:
+		compile_error(current_process, "There isn’t have such combination\n");
+	}
+	return out;
 }
 
-void parse_datatype_adjust_size_for_primitive(DataType* out)
+void parse_datatype_adjust_size_for_primitive(DataType *out)
 {
-	if(out->type == DATA_TYPE_INT && out->type == DATA_TYPE_INT)
+	if (out->type == DATA_TYPE_INT && out->type == DATA_TYPE_INT)
 	{
 		compile_error(current_process, "Doesn’t have data type \"int int\"");
 	}
-	if(out->secondary && out->secondary->type == DATA_TYPE_INT)
+	if (out->secondary && out->secondary->type == DATA_TYPE_INT)
 	{
 		return;
 	}
 	out->size = parse_datatype_get_the_size_of_this_combination(out->type, out->secondary->type);
 }
 
-void parse_datatype_adjust_type_and_size_for_primitive(Token* secondary,DataType* out)
+void parse_datatype_adjust_type_and_size_for_primitive(Token *secondary, DataType *out)
 {
-	if(!secondary)
+	if (!secondary)
 	{
 		return;
 	}
-	DataType* secondary_data_type = calloc(1,sizeof(DataType));
-	parse_datatype_init_type_and_size_for_primitive(secondary,NULL,secondary_data_type);
+	DataType *secondary_data_type = calloc(1, sizeof(DataType));
+	parse_datatype_init_type_and_size_for_primitive(secondary, NULL, secondary_data_type);
 	secondary_data_type->type_str = secondary->sval;
 	out->secondary = secondary_data_type;
 	parse_datatype_adjust_size_for_primitive(out);
 }
 
-void parse_datatype_init_type_and_size_for_primitive(Token* type,Token* secondary,DataType* out)
+void parse_datatype_init_type_and_size_for_primitive(Token *type, Token *secondary, DataType *out)
 {
-	if(!parse_datatype_is_secondary_allow_for_type(type) && secondary)
+	if (!parse_datatype_is_secondary_allow_for_type(type) && secondary)
 	{
-		compile_error(current_process,"this data type can‘t have secondary type\n");
+		compile_error(current_process, "this data type can‘t have secondary type\n");
 	}
-	if(S_EQ(type->sval,"void"))
+	if (S_EQ(type->sval, "void"))
 	{
 		out->type = DATA_TYPE_VOID;
 		out->size = ZERO;
 	}
-	else if(S_EQ(type->sval,"char"))
+	else if (S_EQ(type->sval, "char"))
 	{
 		out->type = DATA_TYPE_CHAR;
 		out->size = BYTE;
 	}
-	else if(S_EQ(type->sval,"short"))
+	else if (S_EQ(type->sval, "short"))
 	{
 		out->type = DATA_TYPE_SHORT;
 		out->size = WORD;
 	}
-	else if(S_EQ(type->sval,"int"))
+	else if (S_EQ(type->sval, "int"))
 	{
 		out->type = DATA_TYPE_INT;
 		out->size = DWORD;
 	}
-	else if(S_EQ(type->sval,"long"))
+	else if (S_EQ(type->sval, "long"))
 	{
 		out->type = DATA_TYPE_LONG;
 		out->size = DWORD;
 	}
-	else if(S_EQ(type->sval,"float"))
+	else if (S_EQ(type->sval, "float"))
 	{
 		out->type = DATA_TYPE_FLOAT;
 		out->size = DWORD;
 	}
-	else if(S_EQ(type->sval,"double"))
+	else if (S_EQ(type->sval, "double"))
 	{
 		out->type = DATA_TYPE_DOUBLE;
 		out->size = QWORD;
 	}
 	else
 	{
-		compile_error(current_process,"BUG: Other keywords have entered this function\n");
+		compile_error(current_process, "BUG: Other keywords have entered this function\n");
 	}
 
-	parse_datatype_adjust_type_and_size_for_primitive(secondary,out);
+	parse_datatype_adjust_type_and_size_for_primitive(secondary, out);
 }
 
-void parse_datatype_init_type_and_size(Token* type,Token* secondary,DataType* out,int pointer_depth,int expected_type)
+void parse_datatype_init_type_and_size(Token *type, Token *secondary, DataType *out, int pointer_depth, int expected_type)
 {
-	if(!parse_datatype_is_secondary_allow(expected_type) && secondary)
+	if (!parse_datatype_is_secondary_allow(expected_type) && secondary)
 	{
-		compile_error(current_process,"this data type can’t have secondary type\n");
+		compile_error(current_process, "this data type can’t have secondary type\n");
 	}
-	switch(expected_type)
+	switch (expected_type)
 	{
-		case DATA_TYPE_EXPECT_PRIMITIVE:
-			parse_datatype_init_type_and_size_for_primitive(type,secondary,out);
-			break;
-		case DATA_TYPE_EXPECT_UNION:
-		case DATA_TYPE_EXPECT_STRUCT:
-			if(type->flags & TOKEN_FLAG_FROM_PARSER)
-			{
-				free(type->sval);
-				free(type);
-			}
-			compile_error(current_process,"Structures and unions are not supported just now.\n");
-			break;
+	case DATA_TYPE_EXPECT_PRIMITIVE:
+		parse_datatype_init_type_and_size_for_primitive(type, secondary, out);
+		break;
+	case DATA_TYPE_EXPECT_UNION:
+	case DATA_TYPE_EXPECT_STRUCT:
+		if (type->flags & TOKEN_FLAG_FROM_PARSER)
+		{
+			free(type->sval);
+			free(type);
+		}
+		compile_error(current_process, "Structures and unions are not supported just now.\n");
+		break;
 	}
-	if(pointer_depth > 0)
+	if (pointer_depth > 0)
 	{
 		out->flag |= DATATYPE_FLAG_POINTER;
 		out->pointer_depth = pointer_depth;
 	}
 }
 
-void parse_datatype_init(Token* type,Token* secondary,DataType* out,int pointer_depth,int expected_type)
+void parse_datatype_init(Token *type, Token *secondary, DataType *out, int pointer_depth, int expected_type)
 {
-	parse_datatype_init_type_and_size(type,secondary,out,pointer_depth,expected_type);
+	parse_datatype_init_type_and_size(type, secondary, out, pointer_depth, expected_type);
 	out->type_str = type->sval;
 }
 
@@ -484,9 +490,9 @@ void parse_datatype_type(DataType *datatype)
 	Token *type_token = NULL, *secondary_token = NULL;
 	parse_get_token_data_type(&type_token, &secondary_token);
 	int expected_type = parse_datatype_expected_for_type(type_token);
-	if(datatype_is_struct_or_union_for_name(type_token))
+	if (datatype_is_struct_or_union_for_name(type_token))
 	{
-		if(peek_token()->type == TOKEN_TYPE_IDENTIFIER)
+		if (peek_token()->type == TOKEN_TYPE_IDENTIFIER)
 		{
 			type_token = next_token();
 		}
@@ -497,7 +503,7 @@ void parse_datatype_type(DataType *datatype)
 		}
 	}
 	int pointer_depth = parse_get_pointer_depth();
-	parse_datatype_init(type_token,secondary_token,datatype,pointer_depth,expected_type);
+	parse_datatype_init(type_token, secondary_token, datatype, pointer_depth, expected_type);
 }
 
 void parse_datatype(DataType *datatype)
@@ -510,12 +516,12 @@ void parse_datatype(DataType *datatype)
 	parse_datatype_modeifier(datatype);
 }
 
-void parse_expressionable_root(History* history);
+void parse_expressionable_root(History *history);
 
 void parse_variable_node(DataType *datatype, Token *token, Node *value)
 {
 	char *name_str = NULL;
-	if(token)
+	if (token)
 	{
 		name_str = token->sval;
 	}
@@ -523,12 +529,12 @@ void parse_variable_node(DataType *datatype, Token *token, Node *value)
 	node_creat(&(Node){.type = NODE_TYPE_VARIABLE, .var.datatype = *datatype, .var.name = name_str, .var.value = value});
 }
 
-void parse_variable_node_and_register(DataType *datatype, Token *name, Node* value)
+void parse_variable_node_and_register(DataType *datatype, Token *name, Node *value)
 {
 	parse_variable_node(datatype, name, value);
 	Node *variable_node = pop_node();
 
-	#warning "Don't remember add offset"
+#warning "Don't remember add offset"
 
 	push_node(variable_node);
 }
@@ -536,10 +542,10 @@ void parse_variable_node_and_register(DataType *datatype, Token *name, Node* val
 ArrayBrackets *parse_array_brackets(History *history)
 {
 	ArrayBrackets *bracket = new_array_brackets();
-	while(this_token_is_operator("["))
+	while (this_token_is_operator("["))
 	{
 		expect_op("[");
-		if(token_is_symbol(peek_token(), ']'))
+		if (token_is_symbol(peek_token(), ']'))
 		{
 			expect_sym(']');
 			break;
@@ -559,10 +565,10 @@ ArrayBrackets *parse_array_brackets(History *history)
 
 void parse_variable(DataType *datatype, Token *name, History *history)
 {
-	Node* value_node = NULL;
+	Node *value_node = NULL;
 
 	ArrayBrackets *brackets = NULL;
-	if(this_token_is_operator("["))
+	if (this_token_is_operator("["))
 	{
 		brackets = parse_array_brackets(history);
 		datatype->array.brackets = brackets;
@@ -576,7 +582,7 @@ void parse_variable(DataType *datatype, Token *name, History *history)
 		parse_expressionable_root(history);
 		value_node = pop_node();
 	}
-	
+
 	parse_variable_node_and_register(datatype, name, value_node);
 }
 
@@ -589,13 +595,13 @@ void parse_symbol()
 
 void parse_statement(History *history)
 {
-	if(peek_token()->type == TOKEN_TYPE_KEYWORDS)
+	if (peek_token()->type == TOKEN_TYPE_KEYWORDS)
 	{
 		parse_keyword(history);
 		return;
 	}
 	parse_expressionable_root(history);
-	if(peek_token()->type == TOKEN_TYPE_SYMBOL && this_token_is_symbol(';'))
+	if (peek_token()->type == TOKEN_TYPE_SYMBOL && this_token_is_symbol(';'))
 	{
 		parse_symbol();
 		return;
@@ -603,22 +609,83 @@ void parse_statement(History *history)
 	expect_sym('{');
 }
 
-void parse_finish_body(History *history, Node *body_node, mound *statement, size_t *size, Node *largset)
+void parse_finish_body(History *history, Node *body_node, mound *statement, size_t *size, Node *largset_align_variable_node, Node *largset)
 {
+	if (history->flag & HISTORY_FLAG_INSIDE_UNION)
+	{
+		if (largset)
+		{
+			*size = variable_size(largset);
+		}
+	}
+	int padding = compute_sum_padding(statement);
+	*size += padding;
+	if (largset_align_variable_node)
+	{
+		*size = align_value(*size, variable_size(largset_align_variable_node));
+	}
 	body_node->body.statements = statement;
 	body_node->body.size = *size;
 	body_node->body.padding = false;
 	body_node->body.largest_variable = largset;
 }
 
+void parse_append_size_for_struct_or_union(History *history, size_t *size, Node *node)
+{
+	*size += variable_size(node);
+	if (node->var.datatype.flag & DATATYPE_FLAG_POINTER)
+	{
+		return;
+	}
+
+	Node *largest_node = variable_struct_or_union_node(node)->body.largest_variable;
+
+	if (largest_node)
+	{
+		*size += align_value(*size, largest_node->var.datatype.size);
+	}
+}
+
+void parse_append_size_for_node(History *history, size_t *size, Node *node);
+
+void parse_append_size_fo_variable_list(History *history, size_t *size, mound *list)
+{
+	Node *node = NULL;
+	set_peek(list, 0);
+	node = next_ptr(list);
+	while (node)
+	{
+		parse_append_size_for_node(history, size, node);
+		node = next_ptr(list);
+	}
+}
+
 void parse_append_size_for_node(History *history, size_t *size, Node *node)
 {
-	compile_warning(current_process, "parse size isn't finish");
+	// compile_warning(current_process, "parse size isn't finish");
+	if (!node)
+	{
+		return;
+	}
+
+	if (node->type == NODE_TYPE_VARIABLE)
+	{
+		if (node_is_struct_or_union(node))
+		{
+			parse_append_size_for_struct_or_union(history, size, node);
+			return;
+		}
+
+		*size += variable_size(node);
+	}
+	else if (node->type == NODE_TYPE_VARIABLE_LIST)
+	{
+	}
 }
 
 void parse_single_statement(size_t *size, mound *body, History *history)
 {
-	make_body_node(0,NULL,false,NULL);
+	make_body_node(0, NULL, false, NULL);
 	Node *node_body = pop_node();
 	node_body->binded.owner = parse_current_body;
 
@@ -633,14 +700,14 @@ void parse_single_statement(size_t *size, mound *body, History *history)
 	push(body, &statement);
 
 	parse_append_size_for_node(history, size, statement);
-	
+
 	Node *largest = NULL;
-	if(statement->type == NODE_TYPE_VARIABLE)
+	if (statement->type == NODE_TYPE_VARIABLE)
 	{
 		largest = statement;
 	}
 
-	parse_finish_body(history, node_body, body, size, largest);
+	parse_finish_body(history, node_body, body, size, largest, largest);
 
 	parse_current_body = node_body->binded.owner;
 
@@ -652,12 +719,12 @@ void parse_body(size_t *size, History *history)
 	parse_scope_new();
 
 	size_t tmp_size = 0;
-	mound *body = creat_mound(sizeof(Node*));
+	mound *body = creat_mound(sizeof(Node *));
 
 	if (!size)
 		size = &tmp_size;
 
-	if(this_token_is_symbol('{'))
+	if (this_token_is_symbol('{'))
 		parse_single_statement(size, body, history);
 
 	parse_scope_finish();
@@ -693,7 +760,7 @@ void parse_struct_or_union(DataType *datatype)
 
 	case DATA_TYPE_UNION:
 		break;
-	
+
 	default:
 		compile_error(current_process, "BUG: Compiler failed creat data type");
 		break;
@@ -705,33 +772,33 @@ void parse_variable_function_or_struct_union(History *history)
 	DataType datatype = {0};
 	parse_datatype(&datatype);
 
-	if(data_type_is_struct_or_union(&datatype))
+	if (data_type_is_struct_or_union(&datatype))
 	{
 		parse_struct_or_union(&datatype);
 	}
 
 	Token *token = next_token();
-	if(token->type != TOKEN_TYPE_IDENTIFIER)
+	if (token->type != TOKEN_TYPE_IDENTIFIER)
 	{
 		compile_error(current_process, "the variable name must is identifier");
 	}
 
 	parse_variable(&datatype, token, history_down(history, history->flag));
 
-	if(this_token_is_operator(","))
+	if (this_token_is_operator(","))
 	{
 		mound *var_list = creat_mound(sizeof(Node *));
 		Node *var = pop_node();
 		push(var_list, &var);
-		while(this_token_is_operator(","))
+		while (this_token_is_operator(","))
 		{
 			next_token();
 			token = next_token();
-			if(token->type != TOKEN_TYPE_IDENTIFIER)
+			if (token->type != TOKEN_TYPE_IDENTIFIER)
 			{
 				compile_error(current_process, "the variable name must is identifier");
 			}
-			
+
 			parse_variable(&datatype, token, history);
 			var = pop_node();
 			push(var_list, &var);
@@ -743,7 +810,7 @@ void parse_variable_function_or_struct_union(History *history)
 	expect_sym(';');
 	free_history(history);
 
-	//free(DataType);
+	// free(DataType);
 }
 
 void parse_keyword(History *history)
@@ -785,7 +852,8 @@ int parse_expressionable_single(History *history)
 
 void parse_expressionable(History *history)
 {
-	while (parse_expressionable_single(history) == 0);
+	while (parse_expressionable_single(history) == 0)
+		;
 }
 
 void parse_expressionable_root(History *history)
@@ -837,8 +905,8 @@ int parse(compile_process *process)
 {
 	current_process = process;
 	set_peek(process->tokens, 0);
-//	set_mound(current_process->node, current_process->node_tree);
-//	get_count(process->tokens);
+	//	set_mound(current_process->node, current_process->node_tree);
+	//	get_count(process->tokens);
 	Node *node = NULL;
 	while (!parse_next())
 	{
@@ -847,4 +915,3 @@ int parse(compile_process *process)
 	}
 	return PARSE_ALL_OK;
 }
-

@@ -179,3 +179,13 @@ Node *node_creat(Node *_node)
 	push_node(node);
 	return node;
 }
+
+bool node_is_struct_or_union(Node *node)
+{
+	if(node->type != NODE_TYPE_VARIABLE)
+	{
+		return false;
+	}
+
+	return data_type_is_struct_or_union(&node->var.datatype);
+}

@@ -527,6 +527,7 @@ Node *make_exp_node(Node *left, Node *right, char *op);
 Node *make_bracket_node(Node *node);
 Node *make_variable_list_node(mound *var_list);
 Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_variable);
+bool node_is_struct_or_union(Node *node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);
@@ -577,9 +578,10 @@ int array_total_indexes(DataType *datatype);
 // in file helper.c
 size_t variable_size(Node *node);
 size_t variable_size_for_list(Node *node);
+Node *variable_struct_or_union_node(Node *node);
 int padding(int value, int to);
 int align_value(int value, int to);
 int align_value_treat_positive(int value, int to);
-int cumpute_sum_padding(mound *nodes);
+int compute_sum_padding(mound *nodes);
 
 #endif

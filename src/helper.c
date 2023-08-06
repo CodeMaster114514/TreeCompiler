@@ -21,6 +21,22 @@ size_t variable_size_for_list(Node *node)
     return size;
 }
 
+Node *variable_struct_or_union_node(Node *node)
+{
+    if (!node_is_struct_or_union(node))
+    {
+        return NULL;
+    }
+
+    if (node->var.datatype.type == DATA_TYPE_STRUCT)
+    {
+        return node->var.datatype.struct_node->_struct.n_body;
+    }
+
+#warning "Don't remember to imlement unions"
+
+}
+
 int padding(int value, int to)
 {
     if (to <= 0)
@@ -57,7 +73,7 @@ int align_value_treat_positive(int value, int to)
     return align_value(value, to);
 }
 
-int cumpute_sum_padding(mound *nodes)
+int compute_sum_padding(mound *nodes)
 {
     int padding = 0, last_type = -1;
     bool isMixedType = false;

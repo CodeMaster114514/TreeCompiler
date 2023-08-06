@@ -66,7 +66,7 @@ main: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler
 	$(COMPILER) $(CODE_LOCATION)./helper.c $(INCLUDE) $(COMPILE_METHOR) -o ./build/helper.o -c
 
 
-clear:
+clean:
 	rm ${OBJECTS} ${LIB_FILE} -rf
 	rm ./main
 
