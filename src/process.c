@@ -27,6 +27,7 @@ compile_process *compile_process_create(
 	process->pos.col = 1;
 	process->node = creat_mound(sizeof(Node *));
 	process->node_tree = creat_mound(sizeof(Node *));
+	scope_creat_root(process);
 	set_mound(process->node,process->node_tree);
 	return process;
 }
@@ -37,6 +38,7 @@ void free_compile_process(compile_process *process)
 	if (process->out_fp != NULL)
 		fclose(process->out_fp);
 	free_nodes();
+	scope_free_root(process);
 	free_mound(process->node);
 	free_mound(process->node_tree);
 	free(process);

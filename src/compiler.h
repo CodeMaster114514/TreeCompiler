@@ -314,15 +314,14 @@ struct Node
 
 			// 存储结合体所有变量
 			Node *n_body;
-			
+
 			/*
-			* union a
-			* {
-			* } b;
-			*/
+			 * union a
+			 * {
+			 * } b;
+			 */
 			Node *var_name;
 		} _union;
-		
 
 		struct
 		{
@@ -548,6 +547,7 @@ Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_varia
 bool node_is_struct_or_union(Node *node);
 Node *variable_node(Node *node);
 bool variable_node_is_primitive(Node *node);
+Node *variable_node_or_list(Node *node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

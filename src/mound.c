@@ -59,9 +59,9 @@ void pop(mound *this)
     {
         --this->peek;
     }
-    if(this->peek < 0)
+    if (this->peek < 0)
     {
-	    this->peek = 0;
+        this->peek = 0;
     }
     assert(noCross(this));
 }
@@ -72,6 +72,11 @@ void set_peek(mound *this, size_t p)
     {
         this->peek = get_count(this) - 1;
     }
+    else if (p < 0)
+    {
+        this->peek = 0;
+    }
+
     else
     {
         this->peek = p;
@@ -80,9 +85,9 @@ void set_peek(mound *this, size_t p)
 
 size_t get_count(mound *this)
 {
-	if(!this)
-		return 0;
-	return this->count;
+    if (!this)
+        return 0;
+    return this->count;
 }
 
 void free_mound(mound *this)
@@ -107,19 +112,19 @@ void *next(mound *this)
     {
         return data;
     }
-    if(this->flag & MOUND_FLAG_PEEK_DECREMENT)
-	    --this->peek;
+    if (this->flag & MOUND_FLAG_PEEK_DECREMENT)
+        --this->peek;
     else
-	    ++this->peek;
+        ++this->peek;
     assert(noCross(this));
     return data;
 }
 
 void *last_data(mound *this)
 {
-	if(this->count <= 0)
-		return NULL;
-	return (void *)(this->buffer + (this->count - 1) * this->len);
+    if (this->count <= 0)
+        return NULL;
+    return (void *)(this->buffer + (this->count - 1) * this->len);
 }
 
 bool isEmpty(mound *this)
@@ -129,39 +134,46 @@ bool isEmpty(mound *this)
 
 void set_flag(mound *this, int flag)
 {
-	this->flag |= flag;
+    this->flag |= flag;
 }
 
 void unset_flag(mound *this, int flag)
 {
-	this->flag &= ~flag;
+    this->flag &= ~flag;
 }
 
 void set_peek_in_end(mound *this)
 {
-	set_peek(this, this->count-1);
+    if (this->count == 0)
+    {
+        this->peek = 0;
+    }
+    else
+    {
+        set_peek(this, this->count - 1);
+    }
 }
 
 void *peek_ptr(mound *this)
 {
-	void **ptr = peek(this);
-	if(!ptr)
-		return NULL;
-	return *ptr;
+    void **ptr = peek(this);
+    if (!ptr)
+        return NULL;
+    return *ptr;
 }
 
 void *next_ptr(mound *this)
 {
-	void **ptr = next(this);
-	if(!ptr)
-		return NULL;
-	return *ptr;
+    void **ptr = next(this);
+    if (!ptr)
+        return NULL;
+    return *ptr;
 }
 
 void *last_data_ptr(mound *this)
 {
-	void **ptr = last_data(this);
-	if(!ptr)
-		return NULL;
-	return *ptr;
+    void **ptr = last_data(this);
+    if (!ptr)
+        return NULL;
+    return *ptr;
 }

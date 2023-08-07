@@ -249,3 +249,13 @@ Node *variable_node(Node *node)
 
 	return var;
 }
+
+Node *variable_node_or_list(Node *node)
+{
+	if (node->type == NODE_TYPE_VARIABLE_LIST)
+	{
+		return node;
+	}
+
+	return variable_node(node);
+}

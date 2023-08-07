@@ -34,7 +34,7 @@ void free_scope_with_root(Scope *root, Scope *current)
 			break;
 		}
 	}
-	if(RootIsInCurrent)
+	if(RootIsInCurrent || root == current)
 	{
 		free_scope(current);
 	}
