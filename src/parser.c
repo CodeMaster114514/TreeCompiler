@@ -7,8 +7,41 @@ extern Node *parse_current_body;
 
 enum
 {
+	PARSE_SCOPE_ENTITY_ON_STACK = 0b0001,
+	PARSE_SCOPE_ENTITY_STRUCT_SCOPE = 0b0010
+};
+
+typedef struct
+{
+	int flag;
+
+	// 在栈或结构体中的偏移
+	int offset;
+
+	// 变量节点
+	Node *node;
+} parse_scope_entity;
+
+parse_scope_entity *parse_new_scope_entity(Node *node, int flag, int offset)
+{
+	parse_scope_entity *scope_entity = calloc(1, sizeof(parse_scope_entity));
+	scope_entity->flag = flag;
+	scope_entity->offset = offset;
+	scope_entity->node = node;
+	return scope_entity;
+}
+
+parse_scope_entity *parse_scope_last_entity_stop_global_scope()
+{
+	return scope_last_entity_stop_at(current_process, current_process->scope.root);
+}
+
+enum
+{
 	HISTORY_FLAG_INSIDE_UNION = 0b00000001,
-	HISTORY_FLAG_INSIDE_STRUCT = 0b00000010
+	HISTORY_FLAG_INSIDE_STRUCT = 0b00000010,
+	HISTORY_FLAG_IS_UPWARD_STACK = 0b00000100,
+	HISTORY_FLAG_IS_GLOBAL_SCOPE = 0b00001000
 };
 
 typedef struct
@@ -75,6 +108,11 @@ void parse_scope_new()
 void parse_scope_finish()
 {
 	scope_finish(current_process);
+}
+
+void parse_scope_push(parse_scope_entity *entity, size_t size)
+{
+	scope_push(current_process, entity, size);
 }
 
 static void expect_sym(char c)
@@ -536,12 +574,74 @@ void parse_variable_node(DataType *datatype, Token *token, Node *value)
 	node_creat(&(Node){.type = NODE_TYPE_VARIABLE, .var.datatype = *datatype, .var.name = name_str, .var.value = value});
 }
 
-void parse_variable_node_and_register(DataType *datatype, Token *name, Node *value)
+void parse_scope_offset_on_stack(Node *variable, History *history)
+{
+	parse_scope_entity *last_entity = parse_scope_last_entity_stop_global_scope();
+	bool upward_stack = history->flag & HISTORY_FLAG_IS_UPWARD_STACK;
+	int offset = -variable_size(variable);
+	if (upward_stack)
+	{
+		offset = -offset + 4;
+	}
+
+	if (last_entity)
+	{
+		offset += variable_node(last_entity->node)->var.aoffset;
+		if (variable_node_is_primitive(variable))
+		{
+			variable->var.padding = padding(upward_stack?offset:-offset, variable->var.datatype.size);
+		}
+	}
+}
+
+void parse_scope_offset_global(Node *variable, History *history)
+{
+}
+
+void parse_scope_offset_for_struct(Node *variable, History *history)
+{
+	int offset = 0;
+	parse_scope_entity *last_entity = parse_scope_last_entity_stop_global_scope();
+
+	if (last_entity)
+	{
+		offset += last_entity->offset + last_entity->node->var.datatype.size;
+		if(variable_node_is_primitive(last_entity->node))
+		{
+			variable->var.padding = padding(offset, variable->var.datatype.size);
+		}
+
+		variable->var.aoffset = offset + variable->var.padding;
+	}
+	
+}
+
+void parse_scope_offset(Node *variable, History *history)
+{
+	if(history->flag & HISTORY_FLAG_IS_GLOBAL_SCOPE)
+	{
+		parse_scope_offset_global(variable, history);
+		return;
+	}
+
+	if (history->flag & HISTORY_FLAG_INSIDE_STRUCT)
+	{
+		parse_scope_offset_for_struct(variable, history);
+		return;
+	}
+	
+
+	parse_scope_offset_on_stack(variable, history);
+}
+
+void parse_variable_node_and_register(History *history, DataType *datatype, Token *name, Node *value)
 {
 	parse_variable_node(datatype, name, value);
 	Node *variable_node = pop_node();
 
-#warning "Don't remember add offset"
+	parse_scope_offset(variable_node, history);
+
+	parse_scope_push(parse_new_scope_entity(variable_node, 0, variable_node->var.aoffset), variable_node->var.datatype.size);
 
 	push_node(variable_node);
 }
@@ -590,7 +690,7 @@ void parse_variable(DataType *datatype, Token *name, History *history)
 		value_node = pop_node();
 	}
 
-	parse_variable_node_and_register(datatype, name, value_node);
+	parse_variable_node_and_register(history, datatype, name, value_node);
 }
 
 void parse_keyword(History *history);

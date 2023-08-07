@@ -76,3 +76,8 @@ size_t datatype_size(DataType *datatype)
 
 	return datatype->size;
 }
+
+bool data_type_is_primitive(DataType *datatype)
+{
+	return !data_type_is_struct_or_union(datatype);
+}

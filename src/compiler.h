@@ -276,6 +276,7 @@ struct Node
 		{
 			DataType datatype;
 			int padding;
+			int aoffset;
 			char *name;
 			Node *value;
 		} var;
@@ -305,6 +306,23 @@ struct Node
 			 */
 			Node *var_name;
 		} _struct;
+
+		struct
+		{
+			// 存储集合体名称
+			char *name;
+
+			// 存储结合体所有变量
+			Node *n_body;
+			
+			/*
+			* union a
+			* {
+			* } b;
+			*/
+			Node *var_name;
+		} _union;
+		
 
 		struct
 		{
@@ -528,6 +546,8 @@ Node *make_bracket_node(Node *node);
 Node *make_variable_list_node(mound *var_list);
 Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_variable);
 bool node_is_struct_or_union(Node *node);
+Node *variable_node(Node *node);
+bool variable_node_is_primitive(Node *node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);
@@ -537,6 +557,7 @@ void free_datatype_in_heap(DataType *datatype);
 size_t datatype_element_size(DataType *datatype);
 size_t datatype_size_for_array_access(DataType *datatype);
 size_t datatype_size(DataType *datatype);
+bool data_type_is_primitive(DataType *datatype);
 
 // in file scope.c
 Scope *scope_alloc();

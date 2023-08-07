@@ -31,6 +31,7 @@ void free_scope_with_root(Scope *root, Scope *current)
 		if(parent == root)
 		{
 			RootIsInCurrent = true;
+			break;
 		}
 	}
 	if(RootIsInCurrent)

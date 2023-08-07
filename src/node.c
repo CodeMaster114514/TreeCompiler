@@ -218,3 +218,34 @@ bool node_is_struct_or_union(Node *node)
 
 	return data_type_is_struct_or_union(&node->var.datatype);
 }
+
+bool variable_node_is_primitive(Node *node)
+{
+	assert(node->type == NODE_TYPE_VARIABLE);
+
+	return data_type_is_primitive(&node->var.datatype);
+}
+
+Node *variable_node(Node *node)
+{
+	Node *var = NULL;
+
+	switch (node->type)
+	{
+	case NODE_TYPE_VARIABLE:
+		var = node;
+		break;
+
+	case NODE_TYPE_STRUCT:
+		var = node->_struct.var_name;
+		break;
+
+	case NODE_TYPE_UNION:
+		var = node->_union.var_name;
+
+	default:
+		break;
+	}
+
+	return var;
+}
