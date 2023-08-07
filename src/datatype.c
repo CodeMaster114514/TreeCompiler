@@ -27,16 +27,7 @@ void free_datatype(DataType *datatype)
 {
 	if (datatype->secondary)
 		free_datatype_in_heap(datatype->secondary);
-
-	if (datatype->type == DATA_TYPE_STRUCT)
-	{
-		free_node(datatype->struct_node);
-	}
-	else if (datatype->type == DATA_TYPE_UNION)
-	{
-		free_node(datatype->union_node);
-	}
-	if (datatype->flag & DATATYPE_FLAG_ARRAY)
+	if (datatype->flags & DATATYPE_FLAG_ARRAY)
 	{
 		free_array_brackets(datatype->array.brackets);
 	}
@@ -44,7 +35,7 @@ void free_datatype(DataType *datatype)
 
 size_t datatype_element_size(DataType *datatype)
 {
-	if (datatype->flag & DATATYPE_FLAG_POINTER)
+	if (datatype->flags & DATATYPE_FLAG_POINTER)
 	{
 		return QWORD;
 	}
@@ -54,7 +45,7 @@ size_t datatype_element_size(DataType *datatype)
 
 size_t datatype_size_for_array_access(DataType *datatype)
 {
-	if (data_type_is_struct_or_union(datatype) && datatype->flag & DATATYPE_FLAG_POINTER && datatype->pointer_depth == 1)
+	if (data_type_is_struct_or_union(datatype) && datatype->flags & DATATYPE_FLAG_POINTER && datatype->pointer_depth == 1)
 	{
 		return datatype->size;
 	}
@@ -64,12 +55,12 @@ size_t datatype_size_for_array_access(DataType *datatype)
 
 size_t datatype_size(DataType *datatype)
 {
-	if (datatype->flag & DATATYPE_FLAG_POINTER && datatype->pointer_depth > 0)
+	if (datatype->flags & DATATYPE_FLAG_POINTER && datatype->pointer_depth > 0)
 	{
 		return QWORD;
 	}
 
-	if (datatype->flag & DATATYPE_FLAG_ARRAY)
+	if (datatype->flags & DATATYPE_FLAG_ARRAY)
 	{
 		return datatype->array.size;
 	}

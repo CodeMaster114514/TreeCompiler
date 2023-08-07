@@ -60,7 +60,7 @@ Symble *symresolver_get_symble_by_name(compile_process *process,const char* name
 {
 	set_peek(process->symbles.current_table, 0);
 	Symble *symble = next_ptr(process->symbles.current_table);
-	while(!symble)
+	while(symble)
 	{
 		if(S_EQ(symble->name, name))
 		{
@@ -120,7 +120,12 @@ void symresolver_build_for_native_function(compile_process *process, Node *node)
 
 void symresolver_build_for_struct(compile_process *process, Node *node)
 {
-	compile_error(process, "can’t build struct symble");
+	if (node->flags & NODE_FLAG_IS_FORWARD_DECLARATION)
+	{
+		return;
+	}
+
+	symresolver_register_symble(process, node->_struct.name, SYMBLE_TYPE_NODE, node);
 }
 
 void symresolver_build_for_union(compile_process *process, Node *node)

@@ -30,7 +30,7 @@ Node *variable_struct_or_union_node(Node *node)
 
     if (node->var.datatype.type == DATA_TYPE_STRUCT)
     {
-        return node->var.datatype.struct_node->_struct.n_body;
+        return node->var.datatype.struct_node->_struct.body_node;
     }
 
 #warning "Don't remember to imlement unions"

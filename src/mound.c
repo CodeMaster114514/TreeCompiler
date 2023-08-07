@@ -68,15 +68,14 @@ void pop(mound *this)
 
 void set_peek(mound *this, size_t p)
 {
-    if (p >= this->count)
+    if (p >= this->count && this->count > 0)
     {
         this->peek = get_count(this) - 1;
     }
-    else if (p < 0)
+    else if (p <= 0)
     {
         this->peek = 0;
     }
-
     else
     {
         this->peek = p;
@@ -112,7 +111,7 @@ void *next(mound *this)
     {
         return data;
     }
-    if (this->flag & MOUND_FLAG_PEEK_DECREMENT)
+    if (this->flags & MOUND_FLAG_PEEK_DECREMENT)
         --this->peek;
     else
         ++this->peek;
@@ -132,14 +131,14 @@ bool isEmpty(mound *this)
     return this->count == 0;
 }
 
-void set_flag(mound *this, int flag)
+void set_flag(mound *this, int flags)
 {
-    this->flag |= flag;
+    this->flags |= flags;
 }
 
-void unset_flag(mound *this, int flag)
+void unset_flag(mound *this, int flags)
 {
-    this->flag &= ~flag;
+    this->flags &= ~flags;
 }
 
 void set_peek_in_end(mound *this)

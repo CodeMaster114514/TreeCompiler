@@ -9,7 +9,7 @@ typedef struct
     size_t count;
     int peek;
     int write_p;
-    int flag;
+    int flags;
 } mound;
 
 enum
@@ -32,8 +32,8 @@ void *next_ptr(mound *this);
 void *last_data(mound *this);
 void *last_data_ptr(mound *this);
 bool isEmpty(mound *this);
-void set_flag(mound *this, int flag);
-void unset_flag(mound *this, int flag);
+void set_flag(mound *this, int flags);
+void unset_flag(mound *this, int flags);
 void set_peek_in_end(mound *this);
 
 #endif

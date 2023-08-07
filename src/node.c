@@ -64,9 +64,7 @@ void free_node(Node *data)
 	}
 	if (data->type == NODE_TYPE_STRUCT)
 	{
-		free_node(data->_struct.n_body);
-		if (data->_struct.var_name)
-			free_node(data->_struct.var_name);
+		free_node(data->_struct.body_node);
 	}
 	if (data->type == NODE_TYPE_BODY)
 	{
@@ -201,6 +199,17 @@ Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_varia
 	return node_creat(&(Node){.type = NODE_TYPE_BODY, .body.statements = body, .body.size = size, .body.padding = padding, .body.largest_variable = largest_variable});
 }
 
+Node *make_struct_node(char *name, Node *body_node)
+{
+	int flags = 0;
+	if (!body_node)
+	{
+		flags |= NODE_FLAG_IS_FORWARD_DECLARATION;
+	}
+
+	return node_creat(&(Node){.type = NODE_TYPE_STRUCT, .flags = flags, ._struct.name = name, ._struct.body_node = body_node});
+}
+
 Node *node_creat(Node *_node)
 {
 	Node *node = calloc(1, sizeof(Node));
@@ -235,14 +244,6 @@ Node *variable_node(Node *node)
 	case NODE_TYPE_VARIABLE:
 		var = node;
 		break;
-
-	case NODE_TYPE_STRUCT:
-		var = node->_struct.var_name;
-		break;
-
-	case NODE_TYPE_UNION:
-		var = node->_union.var_name;
-
 	default:
 		break;
 	}
@@ -258,4 +259,38 @@ Node *variable_node_or_list(Node *node)
 	}
 
 	return variable_node(node);
+}
+
+Node *node_from_sym(Symble *symble)
+{
+	if (symble->type != SYMBLE_TYPE_NODE)
+	{
+		return NULL;
+	}
+
+	return symble->data;
+}
+
+Node *node_from_symble(compile_process *process, char *name)
+{
+	Symble *symble = symresolver_get_symble_by_name(process, name);
+
+	if (!symble)
+	{
+		return NULL;
+	}
+
+	return node_from_sym(symble);
+}
+
+Node *struct_node_for_name(compile_process *process, char *name)
+{
+	Node *node = node_from_symble(process, name);
+
+	if (node && node->type != NODE_TYPE_STRUCT)
+	{
+		return NULL;
+	}
+
+	return node;
 }

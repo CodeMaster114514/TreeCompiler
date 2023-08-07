@@ -27,6 +27,8 @@ compile_process *compile_process_create(
 	process->pos.col = 1;
 	process->node = creat_mound(sizeof(Node *));
 	process->node_tree = creat_mound(sizeof(Node *));
+	process->symbles.tables = creat_mound(sizeof(mound *));
+	process->symbles.current_table = creat_mound(sizeof(Symble *));
 	scope_creat_root(process);
 	set_mound(process->node,process->node_tree);
 	return process;

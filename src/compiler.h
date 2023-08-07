@@ -213,7 +213,8 @@ enum
 
 enum
 {
-	NODE_FLAG_INSIDE_EXPRESSION = 0x01
+	NODE_FLAG_INSIDE_EXPRESSION = 0b00000001,
+	NODE_FLAG_IS_FORWARD_DECLARATION = 0b00000010
 };
 
 struct DataType;
@@ -232,7 +233,7 @@ struct DataType
 {
 	int type;
 
-	int flag;
+	int flags;
 
 	char *type_str;
 
@@ -259,7 +260,7 @@ struct DataType
 struct Node
 {
 	int type;
-	int flag;
+	int flags;
 
 	Pos pos;
 
@@ -297,14 +298,7 @@ struct Node
 			char *name;
 
 			// 存储结构体内容
-			Node *n_body;
-
-			/*
-			 * struct a
-			 * {
-			 * } b;
-			 */
-			Node *var_name;
+			Node *body_node;
 		} _struct;
 
 		struct
@@ -313,14 +307,7 @@ struct Node
 			char *name;
 
 			// 存储结合体所有变量
-			Node *n_body;
-
-			/*
-			 * union a
-			 * {
-			 * } b;
-			 */
-			Node *var_name;
+			Node *body_node;
 		} _union;
 
 		struct
@@ -401,7 +388,7 @@ enum
 
 struct scope
 {
-	int flag;
+	int flags;
 
 	mound *entities; // 存储数据信息
 
@@ -544,10 +531,14 @@ Node *make_exp_node(Node *left, Node *right, char *op);
 Node *make_bracket_node(Node *node);
 Node *make_variable_list_node(mound *var_list);
 Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_variable);
+Node *make_struct_node(char *name, Node *body_node);
 bool node_is_struct_or_union(Node *node);
 Node *variable_node(Node *node);
 bool variable_node_is_primitive(Node *node);
 Node *variable_node_or_list(Node *node);
+Node *node_from_sym(Symble *symble);
+Node *node_from_symble(compile_process *process, char *name);
+Node *struct_node_for_name(compile_process *process, char *name);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);
@@ -565,7 +556,7 @@ void free_scope(Scope *scope);
 void free_scope_with_root(Scope *root, Scope *current);
 Scope *scope_creat_root(compile_process *process);
 void scope_free_root(compile_process *process);
-Scope *scope_new(compile_process *process, int flag);
+Scope *scope_new(compile_process *process, int flags);
 void scope_iteration_start(Scope *scope);
 void scope_iteration_end(Scope *scope);
 void *scope_iteration_back(Scope *scope);
@@ -587,6 +578,7 @@ void symresolver_new_table(compile_process *process);
 void symresolver_end_table(compile_process *process);
 Symble *symresolver_get_symble_by_name(compile_process *process, const char *name);
 Symble *symresolver_get_symble_for_native_function_by_name(compile_process *process, const char *name);
+void symresovler_build_for_node(compile_process *process, Node *node);
 
 // in file array.c
 ArrayBrackets *new_array_brackets();

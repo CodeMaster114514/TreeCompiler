@@ -36,7 +36,7 @@ void free_scope_with_root(Scope *root, Scope *current)
 	}
 	if(RootIsInCurrent || root == current)
 	{
-		free_scope(current);
+		free_scope(root);
 	}
 	else
 	{
@@ -63,15 +63,15 @@ void scope_free_root(compile_process *process)
 	process->scope.current = NULL;
 }
 
-Scope *scope_new(compile_process *process, int flag)
+Scope *scope_new(compile_process *process, int flags)
 {
 	assert(process->scope.root);
 	assert(process->scope.current);
 
 	Scope *new = scope_alloc();
-	new->flag |= flag;
+	new->flags |= flags;
 	new->parent = process->scope.current;
-	push(process->scope.current->sub, new);
+	push(process->scope.current->sub, &new);
 	process->scope.current = new;
 	return new;
 }
@@ -79,7 +79,7 @@ Scope *scope_new(compile_process *process, int flag)
 void scope_iteration_start(Scope *scope)
 {
 	set_peek(scope->entities,0);
-	if(scope->entities->flag & MOUND_FLAG_PEEK_DECREMENT)
+	if(scope->entities->flags & MOUND_FLAG_PEEK_DECREMENT)
 	{
 		set_peek_in_end(scope->entities);
 	}
@@ -138,7 +138,6 @@ void scope_push(compile_process *process, void *ptr, size_t size)
 void scope_finish(compile_process *process)
 {
 	Scope *new_scope = process->scope.current->parent;
-	free_scope(process->scope.current);
 	process->scope.current = new_scope;
 	if(!process->scope.current && process->scope.root)
 		process->scope.root =  NULL;

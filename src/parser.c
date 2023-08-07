@@ -13,7 +13,7 @@ enum
 
 typedef struct
 {
-	int flag;
+	int flags;
 
 	// 在栈或结构体中的偏移
 	int offset;
@@ -22,10 +22,10 @@ typedef struct
 	Node *node;
 } parse_scope_entity;
 
-parse_scope_entity *parse_new_scope_entity(Node *node, int flag, int offset)
+parse_scope_entity *parse_new_scope_entity(Node *node, int flags, int offset)
 {
 	parse_scope_entity *scope_entity = calloc(1, sizeof(parse_scope_entity));
-	scope_entity->flag = flag;
+	scope_entity->flags = flags;
 	scope_entity->offset = offset;
 	scope_entity->node = node;
 	return scope_entity;
@@ -46,23 +46,23 @@ enum
 
 typedef struct
 {
-	int flag;
+	int flags;
 } History;
 
 void parse_expressionable(History *history);
 
-History *history_begin(int flag)
+History *history_begin(int flags)
 {
 	History *history = calloc(1, sizeof(History));
-	history->flag = flag;
+	history->flags = flags;
 	return history;
 }
 
-History *history_down(History *_history, int flag)
+History *history_down(History *_history, int flags)
 {
 	History *history = calloc(1, sizeof(History));
 	memcpy(history, _history, sizeof(History));
-	history->flag = flag;
+	history->flags = flags;
 	return history;
 }
 
@@ -258,10 +258,10 @@ void parse_exp_normal(History *history)
 	next_token();
 	// 弹出左节点
 	pop_node();
-	node_left->flag |= NODE_FLAG_INSIDE_EXPRESSION;
+	node_left->flags |= NODE_FLAG_INSIDE_EXPRESSION;
 	parse_expressionable_for_op(history, op);
 	Node *node_right = pop_node();
-	node_right->flag |= NODE_FLAG_INSIDE_EXPRESSION;
+	node_right->flags |= NODE_FLAG_INSIDE_EXPRESSION;
 	Node *exp_node = make_exp_node(node_left, node_right, op);
 	pop_node();
 
@@ -309,23 +309,23 @@ void parse_datatype_modeifier(DataType *datatype)
 
 		if (S_EQ(token->sval, "signed"))
 		{
-			datatype->flag |= DATATYPE_FLAG_SIGNED;
+			datatype->flags |= DATATYPE_FLAG_SIGNED;
 		}
 		else if (S_EQ(token->sval, "unsigned"))
 		{
-			datatype->flag &= ~DATATYPE_FLAG_SIGNED;
+			datatype->flags &= ~DATATYPE_FLAG_SIGNED;
 		}
 		else if (S_EQ(token->sval, "static"))
 		{
-			datatype->flag |= DATATYPE_FLAG_STATIC;
+			datatype->flags |= DATATYPE_FLAG_STATIC;
 		}
 		else if (S_EQ(token->sval, "const"))
 		{
-			datatype->flag |= DATATYPE_FLAG_CONST;
+			datatype->flags |= DATATYPE_FLAG_CONST;
 		}
 		else if (S_EQ(token->sval, "extern"))
 		{
-			datatype->flag |= DATATYPE_FLAG_EXTERN;
+			datatype->flags |= DATATYPE_FLAG_EXTERN;
 		}
 
 		next_token();
@@ -496,6 +496,27 @@ void parse_datatype_init_type_and_size_for_primitive(Token *type, Token *seconda
 	parse_datatype_adjust_type_and_size_for_primitive(secondary, out);
 }
 
+size_t size_of_struct(char *struct_name)
+{
+	Symble *sym = symresolver_get_symble_by_name(current_process, struct_name);
+	if (!sym)
+	{
+		return 0;
+	}
+
+	assert(sym->type == SYMBLE_TYPE_NODE);
+	Node *struct_node = sym->data;
+	assert(struct_node && struct_node->type == NODE_TYPE_STRUCT);
+	return struct_node->_struct.body_node->body.size;
+}
+
+void parse_datatype_init_type_and_size_for_struct(DataType *out, Token *type)
+{
+	out->type = DATA_TYPE_STRUCT;
+	out->size = size_of_struct(type->sval);
+	out->struct_node = struct_node_for_name(current_process, type->sval);
+}
+
 void parse_datatype_init_type_and_size(Token *type, Token *secondary, DataType *out, int pointer_depth, int expected_type)
 {
 	if (!parse_datatype_is_secondary_allow(expected_type) && secondary)
@@ -507,27 +528,29 @@ void parse_datatype_init_type_and_size(Token *type, Token *secondary, DataType *
 	case DATA_TYPE_EXPECT_PRIMITIVE:
 		parse_datatype_init_type_and_size_for_primitive(type, secondary, out);
 		break;
-	case DATA_TYPE_EXPECT_UNION:
 	case DATA_TYPE_EXPECT_STRUCT:
+		parse_datatype_init_type_and_size_for_struct(out, type);
+		break;
+	case DATA_TYPE_EXPECT_UNION:
 		if (type->flags & TOKEN_FLAG_FROM_PARSER)
 		{
 			free(type->sval);
 			free(type);
 		}
-		compile_error(current_process, "Structures and unions are not supported just now.\n");
+		compile_error(current_process, "Unions are not supported just now.\n");
 		break;
 	}
 	if (pointer_depth > 0)
 	{
-		out->flag |= DATATYPE_FLAG_POINTER;
+		out->flags |= DATATYPE_FLAG_POINTER;
 		out->pointer_depth = pointer_depth;
 	}
 }
 
 void parse_datatype_init(Token *type, Token *secondary, DataType *out, int pointer_depth, int expected_type)
 {
-	parse_datatype_init_type_and_size(type, secondary, out, pointer_depth, expected_type);
 	out->type_str = type->sval;
+	parse_datatype_init_type_and_size(type, secondary, out, pointer_depth, expected_type);
 }
 
 void parse_datatype_type(DataType *datatype)
@@ -544,7 +567,7 @@ void parse_datatype_type(DataType *datatype)
 		else
 		{
 			type_token = parse_random_id_for_struct_or_union();
-			datatype->flag |= DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME;
+			datatype->flags |= DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME;
 		}
 	}
 	int pointer_depth = parse_get_pointer_depth();
@@ -554,7 +577,7 @@ void parse_datatype_type(DataType *datatype)
 void parse_datatype(DataType *datatype)
 {
 	//*DataType = calloc(1, sizeof(datatype));
-	datatype->flag |= DATATYPE_FLAG_SIGNED;
+	datatype->flags |= DATATYPE_FLAG_SIGNED;
 
 	parse_datatype_modeifier(datatype);
 	parse_datatype_type(datatype);
@@ -577,7 +600,7 @@ void parse_variable_node(DataType *datatype, Token *token, Node *value)
 void parse_scope_offset_on_stack(Node *variable, History *history)
 {
 	parse_scope_entity *last_entity = parse_scope_last_entity_stop_global_scope();
-	bool upward_stack = history->flag & HISTORY_FLAG_IS_UPWARD_STACK;
+	bool upward_stack = history->flags & HISTORY_FLAG_IS_UPWARD_STACK;
 	int offset = -variable_size(variable);
 	if (upward_stack)
 	{
@@ -617,13 +640,13 @@ void parse_scope_offset_for_struct(Node *variable, History *history)
 
 void parse_scope_offset(Node *variable, History *history)
 {
-	if (history->flag & HISTORY_FLAG_IS_GLOBAL_SCOPE)
+	if (history->flags & HISTORY_FLAG_IS_GLOBAL_SCOPE)
 	{
 		parse_scope_offset_global(variable, history);
 		return;
 	}
 
-	if (history->flag & HISTORY_FLAG_INSIDE_STRUCT)
+	if (history->flags & HISTORY_FLAG_INSIDE_STRUCT)
 	{
 		parse_scope_offset_for_struct(variable, history);
 		return;
@@ -677,7 +700,7 @@ void parse_variable(DataType *datatype, Token *name, History *history)
 	{
 		brackets = parse_array_brackets(history);
 		datatype->array.brackets = brackets;
-		datatype->flag |= DATATYPE_FLAG_ARRAY;
+		datatype->flags |= DATATYPE_FLAG_ARRAY;
 		datatype->array.size = array_brackets_calculate_size(datatype);
 	}
 
@@ -703,17 +726,17 @@ void parse_statement(History *history)
 		return;
 	}
 	parse_expressionable_root(history);
-	if (peek_token()->type == TOKEN_TYPE_SYMBOL && this_token_is_symbol(';'))
+	if (peek_token()->type == TOKEN_TYPE_SYMBOL && !this_token_is_symbol(';'))
 	{
 		parse_symbol();
 		return;
 	}
-	expect_sym('{');
+	expect_sym(';');
 }
 
 void parse_finish_body(History *history, Node *body_node, mound *statement, size_t *size, Node *largest_align_variable_node, Node *largest)
 {
-	if (history->flag & HISTORY_FLAG_INSIDE_UNION)
+	if (history->flags & HISTORY_FLAG_INSIDE_UNION)
 	{
 		if (largest)
 		{
@@ -735,7 +758,7 @@ void parse_finish_body(History *history, Node *body_node, mound *statement, size
 void parse_append_size_for_struct_or_union(History *history, size_t *size, Node *node)
 {
 	*size += variable_size(node);
-	if (node->var.datatype.flag & DATATYPE_FLAG_POINTER)
+	if (node->var.datatype.flags & DATATYPE_FLAG_POINTER)
 	{
 		return;
 	}
@@ -795,7 +818,7 @@ void parse_single_statement(size_t *size, mound *body, History *history)
 	parse_current_body = node_body;
 
 	Node *statement = NULL;
-	History *secend = history_down(history, history->flag);
+	History *secend = history_down(history, history->flags);
 	parse_statement(secend);
 	free_history(secend);
 	statement = pop_node();
@@ -831,7 +854,7 @@ void parse_body_multiple_statment(size_t *size, mound *body, History *history)
 
 	while (!this_token_is_symbol('}'))
 	{
-		History *second = history_down(history, 0);
+		History *second = history_down(history, history->flags);
 
 		parse_statement(second);
 		statement_node = pop_node();
@@ -890,21 +913,42 @@ void parse_body(size_t *size, History *history)
 #warning "Don't forget to adjust the function stack size"
 }
 
-void parse_struct_no_scope()
+void parse_struct_no_new_scope(DataType *datatype, bool isForwardDeclaration)
 {
+	Node *node = NULL; // 存储body node或struct node
+	size_t size = 0;
+
+	History *history = history_begin(HISTORY_FLAG_INSIDE_STRUCT);
+	if (!isForwardDeclaration)
+	{
+		parse_body(&size, history);
+		node = pop_node();
+	}
+
+	make_struct_node(datatype->type_str, node);
+
+	if (node)
+	{
+		datatype->size = node->body.size;
+	}
+
+	node = pop_node();
+	datatype->struct_node = node;
+
+	push_node(node);
 }
 
 void parse_struct(DataType *datatype)
 {
-	bool isFordDeclaration = !token_is_symbol(peek_token(), '{');
-	if (!isFordDeclaration)
+	bool isForwardDeclaration = !token_is_symbol(peek_token(), '{');
+	if (!isForwardDeclaration)
 	{
 		parse_scope_new();
 	}
 
-	parse_struct_no_scope(datatype);
+	parse_struct_no_new_scope(datatype, isForwardDeclaration);
 
-	if (!isFordDeclaration)
+	if (!isForwardDeclaration)
 	{
 		parse_scope_finish();
 	}
@@ -932,16 +976,24 @@ void parse_variable_function_or_struct_union(History *history)
 	DataType datatype = {0};
 	parse_datatype(&datatype);
 
-	if (data_type_is_struct_or_union(&datatype))
+	if (!symresolver_get_symble_by_name(current_process, datatype.type_str) && data_type_is_struct_or_union(&datatype))
 	{
 		parse_struct_or_union(&datatype);
+		Node *struct_node = pop_node();
+		symresovler_build_for_node(current_process, struct_node);
+		push_node(struct_node);
 	}
 
-	Token *token = next_token();
+	Token *token = peek_token();
 	if (token->type != TOKEN_TYPE_IDENTIFIER)
 	{
+		if (data_type_is_struct_or_union(&datatype))
+		{
+			goto exit;
+		}
 		compile_error(current_process, "the variable name must is identifier");
 	}
+	next_token();
 
 	parse_variable(&datatype, token, history);
 
@@ -967,6 +1019,7 @@ void parse_variable_function_or_struct_union(History *history)
 		make_variable_list_node(var_list);
 	}
 
+exit:
 	expect_sym(';');
 
 	// free(DataType);
@@ -990,7 +1043,7 @@ int parse_expressionable_single(History *history)
 		return -1;
 	}
 
-	history->flag |= NODE_FLAG_INSIDE_EXPRESSION;
+	history->flags |= NODE_FLAG_INSIDE_EXPRESSION;
 	int res = -1;
 	switch (token->type)
 	{

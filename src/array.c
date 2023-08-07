@@ -27,7 +27,7 @@ void array_brackets_add(ArrayBrackets *brackets, Node *node)
 
 size_t array_brackets_calculate_size_from_index(DataType *datatype, int index)
 {
-	assert(datatype && (datatype->flag & DATATYPE_FLAG_ARRAY) && datatype->array.brackets);
+	assert(datatype && (datatype->flags & DATATYPE_FLAG_ARRAY) && datatype->array.brackets);
 	size_t type_size = datatype->size;
 	set_peek(datatype->array.brackets->n_brackets, 0);
 	int depth = get_count(datatype->array.brackets->n_brackets);
@@ -56,6 +56,6 @@ size_t array_brackets_calculate_size(DataType *datatype)
 
 int array_total_indexes(DataType *datatype)
 {
-	assert(datatype->flag & DATATYPE_FLAG_ARRAY);
+	assert(datatype->flags & DATATYPE_FLAG_ARRAY);
 	return get_count(datatype->array.brackets->n_brackets);
 }
