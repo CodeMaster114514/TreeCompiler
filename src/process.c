@@ -28,7 +28,7 @@ compile_process *compile_process_create(
 	process->node = creat_mound(sizeof(Node *));
 	process->node_tree = creat_mound(sizeof(Node *));
 	process->symbles.tables = creat_mound(sizeof(mound *));
-	process->symbles.current_table = creat_mound(sizeof(Symble *));
+	symresolver_initialize(process);
 	scope_creat_root(process);
 	set_mound(process->node,process->node_tree);
 	return process;
@@ -41,6 +41,7 @@ void free_compile_process(compile_process *process)
 		fclose(process->out_fp);
 	free_nodes();
 	scope_free_root(process);
+	free_tables(process);
 	free_mound(process->node);
 	free_mound(process->node_tree);
 	free(process);

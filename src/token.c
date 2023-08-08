@@ -24,14 +24,14 @@ bool token_is_nl_or_comment_or_new_line(Token *token)
 
 bool token_is_primitive(Token *token)
 {
-	if(!token)
+	if (!token)
 	{
 		return false;
 	}
 	const char *keyword = token->sval;
 	for (int i = 0; i < PRIMITIVE_TYPE_TOTAL; ++i)
 	{
-		if(S_EQ(primitive[i],keyword))
+		if (S_EQ(primitive[i], keyword))
 		{
 			return true;
 		}
@@ -39,22 +39,30 @@ bool token_is_primitive(Token *token)
 	return false;
 }
 
-bool token_is_operator(Token *token,char *op)
+bool token_is_operator(Token *token, char *op)
 {
-	return token && op && token->type == TOKEN_TYPE_OPERATOR && S_EQ(token->sval,op);
+	return token && op && token->type == TOKEN_TYPE_OPERATOR && S_EQ(token->sval, op);
 }
 
 void free_token(Token *token)
 {
+	if (token->type == TOKEN_TYPE_IDENTIFIER && token->flags & TOKEN_FLAG_FROM_PARSER)
+	{
+		free(token);
+		goto over;
+	}
 	if (token->type ==
-		TOKEN_TYPE_STRING ||
-	token->type ==
-		TOKEN_TYPE_OPERATOR ||
-	token->type ==
-		TOKEN_TYPE_KEYWORDS ||
-	token->type ==
-		TOKEN_TYPE_COMMENT)
+			TOKEN_TYPE_STRING ||
+		token->type ==
+			TOKEN_TYPE_OPERATOR ||
+		token->type ==
+			TOKEN_TYPE_KEYWORDS ||
+		token->type ==
+			TOKEN_TYPE_IDENTIFIER ||
+		token->type ==
+			TOKEN_TYPE_COMMENT)
 	{
 		free(token->sval);
 	}
+over:
 }

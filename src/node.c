@@ -64,7 +64,12 @@ void free_node(Node *data)
 	}
 	if (data->type == NODE_TYPE_STRUCT)
 	{
-		free_node(data->_struct.body_node);
+		if (data->flags & DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME)
+		{
+			free(data->_struct.name);
+		}
+		if (data->_struct.body_node)
+			free_node(data->_struct.body_node);
 	}
 	if (data->type == NODE_TYPE_BODY)
 	{

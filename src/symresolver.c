@@ -7,8 +7,8 @@ void symresolver_push(compile_process *process, Symble *symble)
 
 void free_symble(Symble *symble)
 {
-	free(symble->name);
-	free(symble->data);
+//	free(symble->name);
+//	free(symble->data);
 	free(symble);
 }
 

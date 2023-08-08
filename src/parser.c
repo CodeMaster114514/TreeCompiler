@@ -515,6 +515,10 @@ void parse_datatype_init_type_and_size_for_struct(DataType *out, Token *type)
 	out->type = DATA_TYPE_STRUCT;
 	out->size = size_of_struct(type->sval);
 	out->struct_node = struct_node_for_name(current_process, type->sval);
+	if (out->flags & DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME)
+	{
+		free_token(type);
+	}
 }
 
 void parse_datatype_init_type_and_size(Token *type, Token *secondary, DataType *out, int pointer_depth, int expected_type)
@@ -704,6 +708,11 @@ void parse_variable(DataType *datatype, Token *name, History *history)
 		datatype->array.size = array_brackets_calculate_size(datatype);
 	}
 
+	if(datatype->size == 0 && datatype->pointer_depth == 0)
+	{
+		compile_error(current_process, "The size of variable can't be zero\n");
+	}
+
 	if (this_token_is_operator("="))
 	{
 		next_token();
@@ -767,7 +776,7 @@ void parse_append_size_for_struct_or_union(History *history, size_t *size, Node 
 
 	if (largest_node)
 	{
-		*size += align_value(*size, largest_node->var.datatype.size);
+		*size = align_value(*size, largest_node->var.datatype.size);
 	}
 }
 
@@ -976,12 +985,16 @@ void parse_variable_function_or_struct_union(History *history)
 	DataType datatype = {0};
 	parse_datatype(&datatype);
 
-	if (!symresolver_get_symble_by_name(current_process, datatype.type_str) && data_type_is_struct_or_union(&datatype))
+	if (!symresolver_get_symble_by_name(current_process, datatype.type_str) && data_type_is_struct_or_union(&datatype) && this_token_is_symbol('{'))
 	{
 		parse_struct_or_union(&datatype);
 		Node *struct_node = pop_node();
 		symresovler_build_for_node(current_process, struct_node);
 		push_node(struct_node);
+	}
+	else if (data_type_is_struct_or_union(&datatype) && this_token_is_symbol('{'))
+	{
+		compile_error(current_process, "\"%s %s\" has been initiallized\n",datatype.type == DATA_TYPE_STRUCT?"struct":"union", datatype.type_str);
 	}
 
 	Token *token = peek_token();
