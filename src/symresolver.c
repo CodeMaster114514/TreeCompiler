@@ -37,12 +37,13 @@ void free_tables(compile_process *process)
 
 void symresolver_initialize(compile_process *process)
 {
-	process->symbles.current_table = creat_mound(sizeof(mound*));
+	process->symbles.tables = creat_mound(sizeof(mound*));
 }
 
 void symresolver_new_table(compile_process *process)
 {
-	push(process->symbles.tables, &process->symbles.current_table);
+	if(process->symbles.current_table)
+		push(process->symbles.tables, &process->symbles.current_table);
 	process->symbles.current_table = creat_mound(sizeof(Symble*));
 }
 

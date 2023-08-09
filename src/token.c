@@ -5,15 +5,21 @@
 char *primitive[PRIMITIVE_TYPE_TOTAL] =
 	{"char", "short", "int", "long", "float", "double"};
 
+bool token_is_identifier(Token *token)
+{
+	return token && token->type == TOKEN_TYPE_IDENTIFIER;
+}
+
 bool token_is_keyword(Token *token,
 					  const char *keyword)
 {
-	return (token->type == TOKEN_TYPE_KEYWORDS) && S_EQ(token->sval, keyword);
+	return token && (token->type == TOKEN_TYPE_KEYWORDS) && S_EQ(token->sval, keyword);
 }
 
 bool token_is_symbol(Token *token, char c)
 {
-	return token->type == TOKEN_TYPE_SYMBOL &&
+	return token &&
+		   token->type == TOKEN_TYPE_SYMBOL &&
 		   token->cval == c;
 }
 

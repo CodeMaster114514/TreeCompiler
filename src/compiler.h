@@ -214,7 +214,8 @@ enum
 enum
 {
 	NODE_FLAG_INSIDE_EXPRESSION = 0b00000001,
-	NODE_FLAG_IS_FORWARD_DECLARATION = 0b00000010
+	NODE_FLAG_IS_FORWARD_DECLARATION = 0b00000010,
+	NODE_FLAG_FUNCTION_ARGS_NO_NAME = 0b000001000
 };
 
 struct DataType;
@@ -324,6 +325,35 @@ struct Node
 			// 指向最大的变量节点
 			Node *largest_variable;
 		} body;
+
+		struct
+		{
+			// 存储函数的属性
+			int flags;
+
+			// 存储函数返回值类型 
+			DataType return_datatype;
+
+			// 存储函数名称
+			char *name;
+
+			// 存储函数参数及参数大小
+			struct
+			{
+				// 存储参数变量
+				mound *variables;
+
+				// 存储变量最终大小
+				size_t stack_addition;
+			} args;
+			
+			// 存储函数体
+			Node *body_node;
+
+			// 存储函数体内所有临时变量所占用的栈堆大小
+			size_t stack_size;
+		} function;
+		
 	};
 
 	struct node_binded
@@ -384,6 +414,11 @@ enum
 	DWORD = 4,
 	QWORD = 8,
 	DQWORD = 16
+};
+
+enum
+{
+	FUNCTION_FLAG_IS_NATIVE_FUNCTION = 0b00000001
 };
 
 struct scope
@@ -505,6 +540,7 @@ bool token_is_nl_or_comment_or_new_line(Token *);
 bool token_is_primitive(Token *token);
 bool token_is_operator(Token *token, char *op);
 void free_token(Token *token);
+bool token_is_identifier(Token *token);
 
 // in file string_buffer.c
 string_buffer *creat_string_buffer();
@@ -532,6 +568,7 @@ Node *make_bracket_node(Node *node);
 Node *make_variable_list_node(mound *var_list);
 Node *make_body_node(size_t size, mound *body, bool padding, Node *largest_variable);
 Node *make_struct_node(char *name, Node *body_node);
+Node *make_function_node(DataType *ret_datatype, char *name, mound *variables, Node *body_node);
 bool node_is_struct_or_union(Node *node);
 Node *variable_node(Node *node);
 bool variable_node_is_primitive(Node *node);
@@ -539,6 +576,7 @@ Node *variable_node_or_list(Node *node);
 Node *node_from_sym(Symble *symble);
 Node *node_from_symble(compile_process *process, char *name);
 Node *struct_node_for_name(compile_process *process, char *name);
+size_t function_node_args_stack_addition(Node *node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

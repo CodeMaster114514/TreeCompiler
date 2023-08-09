@@ -3,6 +3,7 @@
 static mound *node = NULL;
 static mound *node_root = NULL;
 Node *parse_current_body = NULL;
+Node *parse_current_function = NULL;
 
 void set_mound(mound *node_set, mound *node_root_set)
 {
@@ -34,6 +35,21 @@ void free_body_node(Node *data)
 		node = next_ptr(data->body.statements);
 	}
 	free_mound(data->body.statements);
+}
+
+void free_function_node(Node *data)
+{
+	mound *variables = data->function.args.variables;
+	if (variables)
+		set_peek(variables, 0);
+	while (variables && peek_ptr(variables))
+	{
+		free_node(next_ptr(variables));
+	}
+	if (variables)
+		free_mound(variables);
+	if (data->function.body_node)
+		free_node(data->function.body_node);
 }
 
 void free_node(Node *data)
@@ -74,6 +90,10 @@ void free_node(Node *data)
 	if (data->type == NODE_TYPE_BODY)
 	{
 		free_body_node(data);
+	}
+	if (data->type == NODE_TYPE_FUNCTION)
+	{
+		free_function_node(data);
 	}
 	free(data);
 }
@@ -215,10 +235,17 @@ Node *make_struct_node(char *name, Node *body_node)
 	return node_creat(&(Node){.type = NODE_TYPE_STRUCT, .flags = flags, ._struct.name = name, ._struct.body_node = body_node});
 }
 
+Node *make_function_node(DataType *ret_datatype, char *name, mound *variables, Node *body_node)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_FUNCTION, .function.return_datatype = *ret_datatype, .function.name = name, .function.args.variables = variables, .function.body_node = body_node, .function.args.stack_addition = DQWORD});
+}
+
 Node *node_creat(Node *_node)
 {
 	Node *node = calloc(1, sizeof(Node));
 	memcpy(node, _node, sizeof(Node));
+	node->binded.owner = parse_current_body;
+	node->binded.function = parse_current_function;
 	push_node(node);
 	return node;
 }
@@ -298,4 +325,10 @@ Node *struct_node_for_name(compile_process *process, char *name)
 	}
 
 	return node;
+}
+
+size_t function_node_args_stack_addition(Node *node)
+{
+	assert(node->type == NODE_TYPE_FUNCTION);
+	return node->function.args.stack_addition;
 }

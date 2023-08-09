@@ -27,8 +27,8 @@ compile_process *compile_process_create(
 	process->pos.col = 1;
 	process->node = creat_mound(sizeof(Node *));
 	process->node_tree = creat_mound(sizeof(Node *));
-	process->symbles.tables = creat_mound(sizeof(mound *));
 	symresolver_initialize(process);
+	symresolver_new_table(process);
 	scope_creat_root(process);
 	set_mound(process->node,process->node_tree);
 	return process;

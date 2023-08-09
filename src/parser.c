@@ -4,6 +4,7 @@ static compile_process *current_process;
 static Token *parse_last_token;
 extern expressionable_operator_precedence_group operator_precendence[TOTAL_OPERATOR_GROUPS];
 extern Node *parse_current_body;
+extern Node *parse_current_function;
 
 enum
 {
@@ -41,7 +42,8 @@ enum
 	HISTORY_FLAG_INSIDE_UNION = 0b00000001,
 	HISTORY_FLAG_INSIDE_STRUCT = 0b00000010,
 	HISTORY_FLAG_IS_UPWARD_STACK = 0b00000100,
-	HISTORY_FLAG_IS_GLOBAL_SCOPE = 0b00001000
+	HISTORY_FLAG_IS_GLOBAL_SCOPE = 0b00001000,
+	HISTORY_FlAG_INSIDE_FUNCTION_BODY = 0b00010000
 };
 
 typedef struct
@@ -383,13 +385,23 @@ char *random_id()
 	return ret_id;
 }
 
-Token *parse_random_id_for_struct_or_union()
+Token *parse_random_id()
 {
 	Token *token = calloc(1, sizeof(Token));
 	token->type = TOKEN_TYPE_IDENTIFIER;
 	token->flags |= TOKEN_FLAG_FROM_PARSER;
 	token->sval = random_id();
 	return token;
+}
+
+Token *parse_random_id_for_struct_or_union()
+{
+	return parse_random_id();
+}
+
+Token *parse_random_id_for_function_args()
+{
+	return parse_random_id();
 }
 
 bool parse_datatype_is_secondary_allow(int expected_type)
@@ -608,7 +620,13 @@ void parse_scope_offset_on_stack(Node *variable, History *history)
 	int offset = -variable_size(variable);
 	if (upward_stack)
 	{
-		offset = -offset + 4;
+		size_t stack_addition = function_node_args_stack_addition(parse_current_function);
+		offset = stack_addition;
+		if (last_entity)
+		{
+			offset = datatype_size(&variable_node(last_entity->node)->var.datatype);
+		}
+		
 	}
 
 	if (last_entity)
@@ -708,7 +726,7 @@ void parse_variable(DataType *datatype, Token *name, History *history)
 		datatype->array.size = array_brackets_calculate_size(datatype);
 	}
 
-	if(datatype->size == 0 && datatype->pointer_depth == 0)
+	if (datatype->size == 0 && datatype->pointer_depth == 0)
 	{
 		compile_error(current_process, "The size of variable can't be zero\n");
 	}
@@ -919,7 +937,107 @@ void parse_body(size_t *size, History *history)
 
 	parse_scope_finish();
 
-#warning "Don't forget to adjust the function stack size"
+}
+
+void parse_variable_full(History *history)
+{
+	DataType datatype = {0};
+	parse_datatype(&datatype);
+
+	Token *name = NULL;
+	if (peek_token() && peek_token()->type == TOKEN_TYPE_IDENTIFIER)
+	{
+		name = next_token();
+	}
+	else
+	{
+		name = parse_random_id_for_function_args();
+	}
+
+	parse_variable(&datatype, name, history);
+
+	if (name->flags & TOKEN_FLAG_FROM_PARSER)
+	{
+		Node *variable = pop_node();
+		variable->flags |= NODE_FLAG_FUNCTION_ARGS_NO_NAME;
+		push_node(variable);
+
+		free_token(name);
+	}
+	
+}
+
+void parse_function_body(History *history)
+{
+	History *second = history_down(history, history->flags | HISTORY_FlAG_INSIDE_FUNCTION_BODY);
+	parse_body(NULL, second);
+	free_history(second);
+}
+
+mound *parse_function_args(History *history)
+{
+	parse_scope_new();
+	mound *args = creat_mound(sizeof(Node *));
+	while (!this_token_is_symbol(')'))
+	{
+		if (this_token_is_operator("..."))
+		{
+			parse_scope_finish();
+			return args;
+		}
+
+		History *second = history_down(history, history->flags | HISTORY_FLAG_IS_UPWARD_STACK);
+		parse_variable_full(second);
+		free_history(second);
+
+		Node *arg = pop_node();
+		push(args, &arg);
+
+		if (!this_token_is_operator(","))
+		{
+			break;
+		}
+
+		next_token();
+		
+	}
+
+	return args;
+}
+
+void parse_function(DataType *ret_datatype, Token *name_token, History *history)
+{
+	mound *args = NULL;
+	parse_scope_new();
+	make_function_node(ret_datatype, name_token->sval, NULL, NULL);
+	Node *function_node = pop_node();
+	parse_current_function = function_node;
+	expect_op("(");
+#warning "Parse function args"
+	args = parse_function_args(history);
+	expect_sym(')');
+	function_node->function.args.variables = args;
+	if (symresolver_get_symble_for_native_function_by_name(current_process, name_token->sval));
+	{
+		function_node->function.flags |= FUNCTION_FLAG_IS_NATIVE_FUNCTION;
+	}
+	if (this_token_is_symbol('{'))
+	{
+		History *second = history_begin(0);
+		parse_function_body(second);
+		free_history(second);
+		Node *body_node = pop_node();
+		function_node->function.body_node = body_node;
+		function_node->function.stack_size = body_node->body.padding;
+	}
+	else
+	{
+		expect_sym(';');
+	}
+
+	parse_current_function = NULL;
+	push_node(function_node);
+	parse_scope_finish();
 }
 
 void parse_struct_no_new_scope(DataType *datatype, bool isForwardDeclaration)
@@ -994,19 +1112,25 @@ void parse_variable_function_or_struct_union(History *history)
 	}
 	else if (data_type_is_struct_or_union(&datatype) && this_token_is_symbol('{'))
 	{
-		compile_error(current_process, "\"%s %s\" has been initiallized\n",datatype.type == DATA_TYPE_STRUCT?"struct":"union", datatype.type_str);
+		compile_error(current_process, "\"%s %s\" has been initiallized\n", datatype.type == DATA_TYPE_STRUCT ? "struct" : "union", datatype.type_str);
 	}
 
 	Token *token = peek_token();
-	if (token->type != TOKEN_TYPE_IDENTIFIER)
+	if (!token_is_identifier(token))
 	{
 		if (data_type_is_struct_or_union(&datatype))
 		{
 			goto exit;
 		}
-		compile_error(current_process, "the variable name must is identifier");
+		compile_error(current_process, "Variable or funvtion name must be identifier");
 	}
 	next_token();
+
+	if (this_token_is_operator("("))
+	{
+		parse_function(&datatype, token, history);
+		return;
+	}
 
 	parse_variable(&datatype, token, history);
 
