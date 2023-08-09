@@ -273,11 +273,59 @@ void parse_exp_normal(History *history)
 	push_node(exp_node);
 }
 
+void parse_deal_with_addition_expression()
+{
+	if (peek_token && peek_token()->type == TOKEN_TYPE_OPERATOR)
+	{
+		History *history = history_begin(0);
+		parse_expressionable(history);
+		free_history(history);
+	}
+}
+
+void parse_expressionable_root(History *history);
+
+void parse_parentheses(History *history)
+{
+	expect_op("(");
+	Node *left = NULL, *tmp_node = peek_node();
+	if (tmp_node && node_is_value_type(tmp_node))
+	{
+		left = tmp_node;
+		pop_node();
+	}
+
+	Node *exp_node = NULL;
+	if (!this_token_is_symbol(')'))
+	{
+		History *second = history_begin(0);
+		parse_expressionable_root(second);
+		free_history(second);
+		exp_node = pop_node();
+	}
+	expect_sym(')');
+
+	make_exp_parentheses_node(exp_node);
+
+	if (left)
+	{
+		Node *parentheses = pop_node();
+		make_exp_node(left, parentheses, "()");
+	}
+
+	parse_deal_with_addition_expression();
+	
+}
+
 int parse_exp(History *history)
 {
 	if (S_EQ(peek_token()->sval, ","))
 	{
 		return -1;
+	}
+	else if (this_token_is_operator("("))
+	{
+		parse_parentheses(history);
 	}
 	else
 	{
@@ -1028,7 +1076,7 @@ void parse_function(DataType *ret_datatype, Token *name_token, History *history)
 		free_history(second);
 		Node *body_node = pop_node();
 		function_node->function.body_node = body_node;
-		function_node->function.stack_size = body_node->body.padding;
+		function_node->function.stack_size = align_value(body_node->body.size, 16);
 	}
 	else
 	{

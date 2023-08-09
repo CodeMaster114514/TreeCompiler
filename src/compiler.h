@@ -276,6 +276,13 @@ struct Node
 
 		struct
 		{
+			// 在括号中的表达式
+			Node *exp;
+		} parenthesis;
+		
+
+		struct
+		{
 			DataType datatype;
 			int padding;
 			int aoffset;
@@ -577,6 +584,9 @@ Node *node_from_sym(Symble *symble);
 Node *node_from_symble(compile_process *process, char *name);
 Node *struct_node_for_name(compile_process *process, char *name);
 size_t function_node_args_stack_addition(Node *node);
+bool node_is_expression_or_parentheses(Node *node);
+bool node_is_value_type(Node *node);
+Node *make_exp_parentheses_node(Node *exp);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

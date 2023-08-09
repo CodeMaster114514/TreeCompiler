@@ -74,6 +74,10 @@ void free_node(Node *data)
 		free_node(data->exp.node_left);
 		free_node(data->exp.node_right);
 	}
+	if (data->type == NODE_TYPE_EXPRESSION_PARENTHESES)
+	{
+		free_node(data->parenthesis.exp);
+	}
 	if (data->type == NODE_TYPE_BRACKET)
 	{
 		free_node(data->brackets.inner);
@@ -240,6 +244,11 @@ Node *make_function_node(DataType *ret_datatype, char *name, mound *variables, N
 	return node_creat(&(Node){.type = NODE_TYPE_FUNCTION, .function.return_datatype = *ret_datatype, .function.name = name, .function.args.variables = variables, .function.body_node = body_node, .function.args.stack_addition = DQWORD});
 }
 
+Node *make_exp_parentheses_node(Node *exp)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_EXPRESSION_PARENTHESES, .parenthesis.exp = exp});
+}
+
 Node *node_creat(Node *_node)
 {
 	Node *node = calloc(1, sizeof(Node));
@@ -331,4 +340,14 @@ size_t function_node_args_stack_addition(Node *node)
 {
 	assert(node->type == NODE_TYPE_FUNCTION);
 	return node->function.args.stack_addition;
+}
+
+bool node_is_expression_or_parentheses(Node *node)
+{
+	return node->type == NODE_TYPE_EXPRESSION || node->type == NODE_TYPE_EXPRESSION_PARENTHESES;
+}
+
+bool node_is_value_type(Node *node)
+{
+	return node_is_expression_or_parentheses(node) || node->type == NODE_TYPE_IDENTIFIER || node->type == NODE_TYPE_NUMBER || node->type == NODE_TYPE_UNION || node->type == NODE_TYPE_TENARY || node->type == NODE_TYPE_STRING;
 }
