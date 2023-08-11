@@ -71,5 +71,6 @@ clean:
 	rm ./main
 
 install: main
-	cp main $(MAIN_INSTALL)
+	rm $(MAIN_INSTALL)tcc -rf
+	ln main $(MAIN_INSTALL)tcc
 #	cp $(LIB_FILE) $(LIB_INSTALL)
