@@ -2,6 +2,7 @@
 
 static mound *node = NULL;
 static mound *node_root = NULL;
+extern compile_process *current_process;
 Node *parse_current_body = NULL;
 Node *parse_current_function = NULL;
 
@@ -56,31 +57,40 @@ void free_node(Node *data)
 {
 	if (data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER)
 	{
-		free(data);
-		return;
+		goto over;
 	}
 	if (data->type == NODE_TYPE_VARIABLE)
 	{
 		free_datatype(&data->var.datatype);
 		if (data->var.value)
 			free_node(data->var.value);
+
+		goto over;
 	}
 	if (data->type == NODE_TYPE_VARIABLE_LIST)
 	{
 		free_variable_list_node(data);
+
+		goto over;
 	}
 	if (data->type == NODE_TYPE_EXPRESSION)
 	{
 		free_node(data->exp.node_left);
 		free_node(data->exp.node_right);
+
+		goto over;
 	}
 	if (data->type == NODE_TYPE_EXPRESSION_PARENTHESES)
 	{
 		free_node(data->parenthesis.exp);
+
+		goto over;
 	}
 	if (data->type == NODE_TYPE_BRACKET)
 	{
 		free_node(data->brackets.inner);
+
+		goto over;
 	}
 	if (data->type == NODE_TYPE_STRUCT)
 	{
@@ -90,6 +100,8 @@ void free_node(Node *data)
 		}
 		if (data->_struct.body_node)
 			free_node(data->_struct.body_node);
+
+		goto over;
 	}
 	if (data->type == NODE_TYPE_BODY)
 	{
@@ -98,7 +110,20 @@ void free_node(Node *data)
 	if (data->type == NODE_TYPE_FUNCTION)
 	{
 		free_function_node(data);
+
+		goto over;
 	}
+	if (data->type == NODE_TYPE_STATEMENT_IF)
+	{
+		free_node(data->statement.if_statement.condition_node);
+		free_node(data->statement.if_statement.body_node);
+
+		if (data->statement.if_statement.next)
+			free_node(data->statement.if_statement.next);
+
+		goto over;
+	}
+over:
 	free(data);
 }
 
@@ -239,14 +264,19 @@ Node *make_struct_node(char *name, Node *body_node)
 	return node_creat(&(Node){.type = NODE_TYPE_STRUCT, .flags = flags, ._struct.name = name, ._struct.body_node = body_node});
 }
 
-Node *make_function_node(DataType *ret_datatype, char *name, mound *variables, Node *body_node)
+Node *make_function_node(DataType *ret_datatype, char *name, mound *input_variables, Node *body_node)
 {
-	return node_creat(&(Node){.type = NODE_TYPE_FUNCTION, .function.return_datatype = *ret_datatype, .function.name = name, .function.args.variables = variables, .function.body_node = body_node, .function.args.stack_addition = DQWORD});
+	return node_creat(&(Node){.type = NODE_TYPE_FUNCTION, .function.return_datatype = *ret_datatype, .function.name = name, .function.args.variables = input_variables, .function.body_node = body_node, .function.args.stack_offset = current_process->flags & COMPILE_PROCESS_FLAG_OUT_X86 ? DQWORD : ZERO});
 }
 
 Node *make_exp_parentheses_node(Node *exp)
 {
 	return node_creat(&(Node){.type = NODE_TYPE_EXPRESSION_PARENTHESES, .parenthesis.exp = exp});
+}
+
+Node *make_if_node(Node *condition, Node *body, size_t var_size, Node *next)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_IF, .statement.if_statement.condition_node = condition, .statement.if_statement.body_node = body, .statement.if_statement.variable_size = var_size, .statement.if_statement.next = next});
 }
 
 Node *node_creat(Node *_node)
@@ -302,6 +332,51 @@ Node *variable_node_or_list(Node *node)
 	return variable_node(node);
 }
 
+bool node_is_variables(Node *node)
+{
+	return node->type == NODE_TYPE_VARIABLE || NODE_TYPE_VARIABLE_LIST;
+}
+
+Node *variables_node(Node *node)
+{
+	if (node->type == NODE_TYPE_VARIABLE || node->type == NODE_TYPE_VARIABLE_LIST)
+	{
+		return variable_node_or_list(node);
+	}
+
+	return NULL;
+}
+
+bool node_have_body(Node *node)
+{
+	return node->type == NODE_TYPE_BODY || node->type == NODE_TYPE_STATEMENT_IF || node->type == NODE_TYPE_STATEMENT_ELSE || node->type == NODE_TYPE_STATEMENT_WHILE || node->type == NODE_TYPE_STATEMENT_SWITCH;
+}
+
+int node_body_size(Node *node)
+{
+	int ret = 0;
+	switch (node->type)
+	{
+	case NODE_TYPE_BODY:
+		ret = node->body.size;
+		break;
+
+	case NODE_TYPE_STATEMENT_IF:
+		ret = node->statement.if_statement.body_node->body.size;
+		break;
+
+	case NODE_TYPE_STATEMENT_ELSE:
+	case NODE_TYPE_STATEMENT_WHILE:
+	case NODE_TYPE_STATEMENT_SWITCH:
+
+	default:
+		ret = 0;
+		break;
+	}
+
+	return ret;
+}
+
 Node *node_from_sym(Symble *symble)
 {
 	if (symble->type != SYMBLE_TYPE_NODE)
@@ -336,10 +411,10 @@ Node *struct_node_for_name(compile_process *process, char *name)
 	return node;
 }
 
-size_t function_node_args_stack_addition(Node *node)
+size_t function_node_args_stack_offset(Node *node)
 {
 	assert(node->type == NODE_TYPE_FUNCTION);
-	return node->function.args.stack_addition;
+	return node->function.args.stack_offset;
 }
 
 bool node_is_expression_or_parentheses(Node *node)

@@ -20,7 +20,7 @@ compile_process *compile_process_create(
 		}
 	}
 	compile_process *process = calloc(1, sizeof(compile_process));
-	process->flags = flags;
+	process->flags |= flags == 0 ? COMPILE_PROCESS_FLAG_OUT_X64 : flags;
 	process->in_fp.fp = input;
 	process->out_fp = output;
 	process->pos.line = 1;

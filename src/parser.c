@@ -1,6 +1,6 @@
 #include "compiler.h"
 
-static compile_process *current_process;
+compile_process *current_process;
 static Token *parse_last_token;
 extern expressionable_operator_precedence_group operator_precendence[TOTAL_OPERATOR_GROUPS];
 extern Node *parse_current_body;
@@ -37,13 +37,19 @@ parse_scope_entity *parse_scope_last_entity_stop_global_scope()
 	return scope_last_entity_stop_at(current_process, current_process->scope.root);
 }
 
+parse_scope_entity *parse_scope_last_entity_stop_parent()
+{
+	return scope_last_entity_stop_at(current_process, current_process->scope.current->parent);
+}
+
 enum
 {
 	HISTORY_FLAG_INSIDE_UNION = 0b00000001,
 	HISTORY_FLAG_INSIDE_STRUCT = 0b00000010,
-	HISTORY_FLAG_IS_UPWARD_STACK = 0b00000100,
+	HISTORY_FLAG_IS_PARAMETER_STACK = 0b00000100,
 	HISTORY_FLAG_IS_GLOBAL_SCOPE = 0b00001000,
-	HISTORY_FlAG_INSIDE_FUNCTION_BODY = 0b00010000
+	HISTORY_FlAG_INSIDE_FUNCTION_BODY = 0b00100000,
+	HISTORY_FLAG_FUNCTION_HAVE_VARIABLE = 0b01000000
 };
 
 typedef struct
@@ -117,21 +123,30 @@ void parse_scope_push(parse_scope_entity *entity, size_t size)
 	scope_push(current_process, entity, size);
 }
 
-static void expect_sym(char c)
+static void expect_sym(char sym)
 {
 	Token *token = next_token();
-	if (!token || token->type != TOKEN_TYPE_SYMBOL || token->cval != c)
+	if (!token_is_symbol(token, sym))
 	{
-		compile_error(current_process, "Expect the symbol \"%c\" however, other symbols are provided.\n", c);
+		compile_error(current_process, "Expect the symbol \"%c\" however, other symbols are provided.\n", sym);
 	}
 }
 
-static void expect_op(char *s)
+static void expect_op(char *op)
 {
 	Token *token = next_token();
-	if (!token || token->type != TOKEN_TYPE_OPERATOR || !S_EQ(token->sval, s))
+	if (!token_is_operator(token, op))
 	{
-		compile_error(current_process, "Expect the symbole \"%s\" however, other operator are provided.\n", s);
+		compile_error(current_process, "Expect the symbole \"%s\" however, other operator are provided.\n", op);
+	}
+}
+
+static void expect_keyword(char *keyword)
+{
+	Token *token = next_token();
+	if (!token_is_keyword(token, keyword))
+	{
+		compile_error(current_process, "Expect the keyword \"%s\" however, other keyword are provided.\n", keyword);
 	}
 }
 
@@ -314,7 +329,6 @@ void parse_parentheses(History *history)
 	}
 
 	parse_deal_with_addition_expression();
-	
 }
 
 int parse_exp(History *history)
@@ -661,30 +675,39 @@ void parse_variable_node(DataType *datatype, Token *token, Node *value)
 	node_creat(&(Node){.type = NODE_TYPE_VARIABLE, .var.datatype = *datatype, .var.name = name_str, .var.value = value});
 }
 
+void parse_scope_parameter_offset_on_stack(int *offset, parse_scope_entity *last_entity, Node *variable, History *history)
+{
+	if (current_process->flags & COMPILE_PROCESS_FLAG_OUT_X86)
+	{
+		*offset = -(*offset);
+	}
+	if (last_entity)
+	{
+		*offset = datatype_size(&variable_node(last_entity->node)->var.datatype);
+	}
+}
+
 void parse_scope_offset_on_stack(Node *variable, History *history)
 {
-	parse_scope_entity *last_entity = parse_scope_last_entity_stop_global_scope();
-	bool upward_stack = history->flags & HISTORY_FLAG_IS_UPWARD_STACK;
+	parse_scope_entity *last_entity = history->flags & HISTORY_FLAG_IS_PARAMETER_STACK || !(history->flags & HISTORY_FLAG_FUNCTION_HAVE_VARIABLE) ? parse_scope_last_entity_stop_parent() : parse_scope_last_entity_stop_global_scope();
+	bool parameter_stack = history->flags & HISTORY_FLAG_IS_PARAMETER_STACK;
 	int offset = -variable_size(variable);
-	if (upward_stack)
+
+	if (parameter_stack)
 	{
-		size_t stack_addition = function_node_args_stack_addition(parse_current_function);
-		offset = stack_addition;
-		if (last_entity)
-		{
-			offset = datatype_size(&variable_node(last_entity->node)->var.datatype);
-		}
-		
+		parse_scope_parameter_offset_on_stack(&offset, last_entity, variable, history);
 	}
 
 	if (last_entity)
 	{
-		offset += variable_node(last_entity->node)->var.aoffset;
-		if (variable_node_is_primitive(variable))
+		offset += variable_node(last_entity->node)->var.stack_offset;
+		if (!variable_node_is_primitive(variable))
 		{
-			variable->var.padding = padding(upward_stack ? offset : -offset, variable->var.datatype.size);
+			offset += padding(offset, 4);
 		}
 	}
+
+	variable->var.stack_offset = offset;
 }
 
 void parse_scope_offset_global(Node *variable, History *history)
@@ -800,12 +823,12 @@ void parse_statement(History *history)
 		parse_keyword(history);
 		return;
 	}
-	parse_expressionable_root(history);
 	if (peek_token()->type == TOKEN_TYPE_SYMBOL && !this_token_is_symbol(';'))
 	{
-		parse_symbol();
+		parse_symbol(history);
 		return;
 	}
+	parse_expressionable_root(history);
 	expect_sym(';');
 }
 
@@ -848,7 +871,7 @@ void parse_append_size_for_struct_or_union(History *history, size_t *size, Node 
 
 void parse_append_size_for_node(History *history, size_t *size, Node *node);
 
-void parse_append_size_fo_variable_list(History *history, size_t *size, mound *list)
+void parse_append_size_for_variable_list(History *history, size_t *size, mound *list)
 {
 	Node *node = NULL;
 	set_peek(list, 0);
@@ -880,7 +903,11 @@ void parse_append_size_for_node(History *history, size_t *size, Node *node)
 	}
 	else if (node->type == NODE_TYPE_VARIABLE_LIST)
 	{
-		parse_append_size_fo_variable_list(history, size, node->var_list.list);
+		parse_append_size_for_variable_list(history, size, node->var_list.list);
+	}
+	else if (node_have_body(node))
+	{
+		*size += node_body_size(node);
 	}
 }
 
@@ -921,7 +948,7 @@ void parse_body_multiple_statment(size_t *size, mound *body, History *history)
 	Node *body_node = pop_node();
 	body_node->binded.owner = parse_current_body;
 
-	Node *statement_node = NULL, *largest_align_variable_node = NULL, *largest = NULL;
+	Node *statement_node = NULL, *largest_align_variable_node = NULL, *largest = NULL, *largest_body;
 
 	parse_current_body = body_node;
 
@@ -933,6 +960,23 @@ void parse_body_multiple_statment(size_t *size, mound *body, History *history)
 
 		parse_statement(second);
 		statement_node = pop_node();
+
+		if (statement_node->type == NODE_TYPE_VARIABLE || statement_node->type == NODE_TYPE_VARIABLE_LIST)
+		{
+			history->flags |= HISTORY_FLAG_FUNCTION_HAVE_VARIABLE;
+		}
+
+		bool isBody = node_have_body(statement_node);
+
+		if (largest_body && isBody)
+		{
+			int statement_size = node_body_size(statement_node), largest_body_size = node_body_size(largest_body);
+			largest_body = statement_size > largest_body_size ? statement_node : largest_body;
+		}
+		else if (isBody)
+		{
+			largest_body = statement_node;
+		}
 
 		if (statement_node->type == NODE_TYPE_VARIABLE)
 		{
@@ -954,9 +998,17 @@ void parse_body_multiple_statment(size_t *size, mound *body, History *history)
 		push(body, &statement_node);
 
 		// 计算
-		parse_append_size_for_node(history, size, variable_node_or_list(statement_node));
+		if (node_is_variables(statement_node))
+		{
+			parse_append_size_for_node(history, size, variables_node(statement_node));
+		}
 
 		free_history(second);
+	}
+
+	if (largest_body)
+	{
+		parse_append_size_for_node(history, size, largest_body);
 	}
 
 	expect_sym('}');
@@ -984,7 +1036,6 @@ void parse_body(size_t *size, History *history)
 	parse_body_multiple_statment(size, body, history);
 
 	parse_scope_finish();
-
 }
 
 void parse_variable_full(History *history)
@@ -1012,7 +1063,6 @@ void parse_variable_full(History *history)
 
 		free_token(name);
 	}
-	
 }
 
 void parse_function_body(History *history)
@@ -1034,7 +1084,7 @@ mound *parse_function_args(History *history)
 			return args;
 		}
 
-		History *second = history_down(history, history->flags | HISTORY_FLAG_IS_UPWARD_STACK);
+		History *second = history_down(history, history->flags | HISTORY_FLAG_IS_PARAMETER_STACK);
 		parse_variable_full(second);
 		free_history(second);
 
@@ -1047,7 +1097,6 @@ mound *parse_function_args(History *history)
 		}
 
 		next_token();
-		
 	}
 
 	return args;
@@ -1065,18 +1114,23 @@ void parse_function(DataType *ret_datatype, Token *name_token, History *history)
 	args = parse_function_args(history);
 	expect_sym(')');
 	function_node->function.args.variables = args;
-	if (symresolver_get_symble_for_native_function_by_name(current_process, name_token->sval));
+	if (symresolver_get_symble_for_native_function_by_name(current_process, name_token->sval))
+		;
 	{
 		function_node->function.flags |= FUNCTION_FLAG_IS_NATIVE_FUNCTION;
 	}
 	if (this_token_is_symbol('{'))
 	{
-		History *second = history_begin(0);
+		History *second = history_down(history, history->flags);
 		parse_function_body(second);
 		free_history(second);
 		Node *body_node = pop_node();
 		function_node->function.body_node = body_node;
 		function_node->function.stack_size = align_value(body_node->body.size, 16);
+		if (current_process->flags & COMPILE_PROCESS_FLAG_OUT_X64)
+		{
+			function_node->function.args.stack_offset = -(function_node->function.stack_size);
+		}
 	}
 	else
 	{
@@ -1210,12 +1264,34 @@ exit:
 	// free(DataType);
 }
 
+void parse_if_statement(History *history)
+{
+	expect_keyword("if");
+	expect_op("(");
+	parse_expressionable_root(history);
+	expect_sym(')');
+
+	Node *condition = pop_node();
+
+	size_t var_size = 0;
+	parse_body(&var_size, history);
+	Node *body = pop_node();
+
+	make_if_node(condition, body, var_size, NULL);
+}
+
 void parse_keyword(History *history)
 {
 	Token *token = peek_token();
 	if (is_keyword_variable_modifier(token->sval) || keyword_is_datatype(token->sval))
 	{
 		parse_variable_function_or_struct_union(history);
+		return;
+	}
+
+	if (S_EQ(token->sval, "if"))
+	{
+		parse_if_statement(history);
 		return;
 	}
 }
@@ -1271,14 +1347,14 @@ void parse_keyword_for_global()
 	push_node(node);
 }
 
-void parse_symbol()
+void parse_symbol(History *history)
 {
 	if (this_token_is_symbol('{'))
 	{
 		size_t size = 0;
-		History *history = history_begin(HISTORY_FLAG_IS_GLOBAL_SCOPE);
-		parse_body(&size, history);
-		free_history(history);
+		History *second = history_down(history, history->flags);
+		parse_body(&size, second);
+		free_history(second);
 	}
 }
 
@@ -1301,7 +1377,9 @@ int parse_next()
 		free_history(history);
 		break;
 	case TOKEN_TYPE_SYMBOL:
-		parse_symbol();
+		history = history_begin(HISTORY_FLAG_IS_GLOBAL_SCOPE);
+		parse_symbol(history);
+		free_history(history);
 		break;
 	case TOKEN_TYPE_NEWLINE:
 	case TOKEN_TYPE_COMMENT:

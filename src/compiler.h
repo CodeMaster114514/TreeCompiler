@@ -144,6 +144,12 @@ typedef struct
 	void *data;
 } Symble;
 
+enum
+{
+	COMPILE_PROCESS_FLAG_OUT_X64 = 0b00000001,
+	COMPILE_PROCESS_FLAG_OUT_X86 = 0b00000010
+};
+
 typedef struct
 {
 	int flags;
@@ -286,6 +292,7 @@ struct Node
 			DataType datatype;
 			int padding;
 			int aoffset;
+			int stack_offset;
 			char *name;
 			Node *value;
 		} var;
@@ -351,7 +358,7 @@ struct Node
 				mound *variables;
 
 				// 存储变量最终大小
-				size_t stack_addition;
+				int stack_offset;
 			} args;
 			
 			// 存储函数体
@@ -361,6 +368,21 @@ struct Node
 			size_t stack_size;
 		} function;
 		
+		struct
+		{
+			struct
+			{
+				// if (condition){body}
+				Node *condition_node;
+				Node *body_node;
+
+				// id (condition){body} else next
+				Node *next;
+
+				// 存储if语句内变量大小
+				size_t variable_size;
+			} if_statement;
+		} statement;
 	};
 
 	struct node_binded
@@ -583,10 +605,15 @@ Node *variable_node_or_list(Node *node);
 Node *node_from_sym(Symble *symble);
 Node *node_from_symble(compile_process *process, char *name);
 Node *struct_node_for_name(compile_process *process, char *name);
-size_t function_node_args_stack_addition(Node *node);
+size_t function_node_args_stack_offset(Node *node);
 bool node_is_expression_or_parentheses(Node *node);
 bool node_is_value_type(Node *node);
 Node *make_exp_parentheses_node(Node *exp);
+Node *make_if_node(Node *condition, Node *body, size_t var_size, Node *next);
+bool node_is_variables(Node *node);
+Node *variables_node(Node *node);
+bool node_have_body(Node *node);
+int node_body_size(Node *node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);
