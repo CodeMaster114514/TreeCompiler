@@ -368,7 +368,7 @@ struct Node
 			size_t stack_size;
 		} function;
 		
-		struct
+		union
 		{
 			struct
 			{
@@ -382,6 +382,11 @@ struct Node
 				// 存储if语句内变量大小
 				size_t variable_size;
 			} if_statement;
+
+			struct
+			{
+				Node *body_node;
+			} else_statement;
 		} statement;
 	};
 
@@ -614,6 +619,7 @@ bool node_is_variables(Node *node);
 Node *variables_node(Node *node);
 bool node_have_body(Node *node);
 int node_body_size(Node *node);
+Node *make_else_node(Node *body);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

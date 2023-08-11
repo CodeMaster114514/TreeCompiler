@@ -49,7 +49,8 @@ enum
 	HISTORY_FLAG_IS_PARAMETER_STACK = 0b00000100,
 	HISTORY_FLAG_IS_GLOBAL_SCOPE = 0b00001000,
 	HISTORY_FlAG_INSIDE_FUNCTION_BODY = 0b00100000,
-	HISTORY_FLAG_FUNCTION_HAVE_VARIABLE = 0b01000000
+	HISTORY_FLAG_FUNCTION_HAVE_VARIABLE = 0b01000000,
+	HISTORY_FLAG_INSIDE_EXPRESSION = 0b10000000
 };
 
 typedef struct
@@ -158,6 +159,16 @@ bool this_token_is_operator(char *op)
 bool this_token_is_symbol(char sym)
 {
 	return token_is_symbol(peek_token(), sym);
+}
+
+bool this_token_is_keyword(char *keyword)
+{
+	return token_is_keyword(peek_token(), keyword);
+}
+
+bool this_token_is_self_increase_operator()
+{
+	return this_token_is_operator("++") || this_token_is_operator("--");
 }
 
 void parse_single_token_to_node()
@@ -331,15 +342,44 @@ void parse_parentheses(History *history)
 	parse_deal_with_addition_expression();
 }
 
+void parse_increase_exp(History *history)
+{
+	Token *token = peek_token();
+	char *op = token->sval;
+	Node *node = node_peek_expressionable();
+	if (node && node->type == NODE_TYPE_IDENTIFIER)
+	{
+		pop_node();
+		make_exp_node(node, NULL, op);
+		return;
+	}
+	next_token();
+	token = peek_token();
+	
+	if (token->type != TOKEN_TYPE_IDENTIFIER)
+	{
+		compile_error(current_process, "The operatoring object of the self-increment and subtraction operator must be a variable\n");
+	}
+
+	parse_single_token_to_node();
+	node = pop_node();
+
+	make_exp_node(node, NULL, op);
+}
+
 int parse_exp(History *history)
 {
-	if (S_EQ(peek_token()->sval, ","))
+	if (this_token_is_operator(","))
 	{
 		return -1;
 	}
 	else if (this_token_is_operator("("))
 	{
 		parse_parentheses(history);
+	}
+	else if (this_token_is_self_increase_operator())
+	{
+		parse_increase_exp(history);
 	}
 	else
 	{
@@ -948,7 +988,7 @@ void parse_body_multiple_statment(size_t *size, mound *body, History *history)
 	Node *body_node = pop_node();
 	body_node->binded.owner = parse_current_body;
 
-	Node *statement_node = NULL, *largest_align_variable_node = NULL, *largest = NULL, *largest_body;
+	Node *statement_node = NULL, *largest_align_variable_node = NULL, *largest = NULL, *largest_body = NULL;
 
 	parse_current_body = body_node;
 
@@ -1264,6 +1304,23 @@ exit:
 	// free(DataType);
 }
 
+void parse_if_statement(History *history);
+
+void parse_else_or_else_if_statement(History *history)
+{
+	expect_keyword("else");
+
+	if (this_token_is_keyword("if"))
+	{
+		parse_if_statement(history);
+		return;
+	}
+
+	parse_body(NULL, history);
+
+	make_else_node(pop_node());
+}
+
 void parse_if_statement(History *history)
 {
 	expect_keyword("if");
@@ -1271,13 +1328,21 @@ void parse_if_statement(History *history)
 	parse_expressionable_root(history);
 	expect_sym(')');
 
-	Node *condition = pop_node();
+	Node *condition = pop_node(), *next = NULL;
 
 	size_t var_size = 0;
 	parse_body(&var_size, history);
 	Node *body = pop_node();
 
-	make_if_node(condition, body, var_size, NULL);
+	if (this_token_is_keyword("else"))
+	{
+		parse_else_or_else_if_statement(history);
+		next = pop_node();
+		size_t next_size = node_body_size(next);
+		var_size = var_size > next_size ? var_size : next_size;
+	}
+
+	make_if_node(condition, body, var_size, next);
 }
 
 void parse_keyword(History *history)
@@ -1331,7 +1396,9 @@ void parse_expressionable(History *history)
 
 void parse_expressionable_root(History *history)
 {
-	parse_expressionable(history);
+	History *second = history_down(history, history->flags);
+	parse_expressionable(second);
+	free_history(second);
 	Node *result_node = pop_node();
 
 	push_node(result_node);

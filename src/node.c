@@ -75,8 +75,10 @@ void free_node(Node *data)
 	}
 	if (data->type == NODE_TYPE_EXPRESSION)
 	{
-		free_node(data->exp.node_left);
-		free_node(data->exp.node_right);
+		if (data->exp.node_left)
+			free_node(data->exp.node_left);
+		if (data->exp.node_right)
+			free_node(data->exp.node_right);
 
 		goto over;
 	}
@@ -121,6 +123,11 @@ void free_node(Node *data)
 		if (data->statement.if_statement.next)
 			free_node(data->statement.if_statement.next);
 
+		goto over;
+	}
+	if (data->type == NODE_TYPE_STATEMENT_ELSE)
+	{
+		free_node(data->statement.else_statement.body_node);
 		goto over;
 	}
 over:
@@ -223,7 +230,7 @@ bool node_is_expressionable(Node *node)
 
 Node *node_peek_expressionable()
 {
-	Node *node = next_node();
+	Node *node = peek_node();
 	if (!node)
 	{
 		return NULL;
@@ -233,8 +240,7 @@ Node *node_peek_expressionable()
 
 Node *make_exp_node(Node *left, Node *right, char *op)
 {
-	assert(left);
-	assert(right);
+	assert(left || right);
 	return node_creat(&(Node){.type = NODE_TYPE_EXPRESSION, .exp.node_left = left, .exp.node_right = right, .exp.op = op});
 }
 
@@ -277,6 +283,11 @@ Node *make_exp_parentheses_node(Node *exp)
 Node *make_if_node(Node *condition, Node *body, size_t var_size, Node *next)
 {
 	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_IF, .statement.if_statement.condition_node = condition, .statement.if_statement.body_node = body, .statement.if_statement.variable_size = var_size, .statement.if_statement.next = next});
+}
+
+Node *make_else_node(Node *body)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_ELSE, .statement.else_statement.body_node = body});
 }
 
 Node *node_creat(Node *_node)
@@ -362,10 +373,11 @@ int node_body_size(Node *node)
 		break;
 
 	case NODE_TYPE_STATEMENT_IF:
-		ret = node->statement.if_statement.body_node->body.size;
+		ret = node->statement.if_statement.variable_size;
 		break;
 
 	case NODE_TYPE_STATEMENT_ELSE:
+		ret = node->statement.else_statement.body_node->body.size;
 	case NODE_TYPE_STATEMENT_WHILE:
 	case NODE_TYPE_STATEMENT_SWITCH:
 
