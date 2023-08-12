@@ -620,6 +620,10 @@ Node *variables_node(Node *node);
 bool node_have_body(Node *node);
 int node_body_size(Node *node);
 Node *make_else_node(Node *body);
+Node *union_node_for_name(compile_process *process, char *name);
+Node *make_union_node(char *name, Node *body_node);
+int variable_list_size(Node *node);
+Node *variable_in_var_list(Node *node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

@@ -28,12 +28,10 @@ Node *variable_struct_or_union_node(Node *node)
         return NULL;
     }
 
-    if (node->var.datatype.type == DATA_TYPE_STRUCT)
+    if (node->var.datatype.type == DATA_TYPE_STRUCT || node->var.datatype.type == DATA_TYPE_UNION)
     {
         return node->var.datatype.struct_node->_struct.body_node;
     }
-
-#warning "Don't remember to imlement unions"
 
 }
 

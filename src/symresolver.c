@@ -131,7 +131,12 @@ void symresolver_build_for_struct(compile_process *process, Node *node)
 
 void symresolver_build_for_union(compile_process *process, Node *node)
 {
-	compile_error(process, "can‘t build union symble");
+	if (node->flags & NODE_FLAG_IS_FORWARD_DECLARATION)
+	{
+		return;
+	}
+
+	symresolver_register_symble(process, node->_union.name, SYMBLE_TYPE_NODE, node);
 }
 
 void symresovler_build_for_node(compile_process *process, Node *node)

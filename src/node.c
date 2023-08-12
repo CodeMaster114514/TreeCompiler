@@ -96,18 +96,21 @@ void free_node(Node *data)
 	}
 	if (data->type == NODE_TYPE_STRUCT)
 	{
-		if (data->flags & DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME)
-		{
-			free(data->_struct.name);
-		}
 		if (data->_struct.body_node)
 			free_node(data->_struct.body_node);
 
 		goto over;
 	}
+	if (data->type == NODE_TYPE_UNION)
+	{
+		if (data->_union.body_node);
+			free_node(data->_union.body_node);
+		goto over;
+	}
 	if (data->type == NODE_TYPE_BODY)
 	{
 		free_body_node(data);
+		goto over;
 	}
 	if (data->type == NODE_TYPE_FUNCTION)
 	{
@@ -290,6 +293,17 @@ Node *make_else_node(Node *body)
 	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_ELSE, .statement.else_statement.body_node = body});
 }
 
+Node *make_union_node(char *name, Node *body_node)
+{
+	int flags = 0;
+	if (!body_node)
+	{
+		flags |= NODE_FLAG_IS_FORWARD_DECLARATION;
+	}
+
+	return node_creat(&(Node){.type = NODE_TYPE_UNION, .flags = flags, ._union.name = name, ._union.body_node = body_node});
+}
+
 Node *node_creat(Node *_node)
 {
 	Node *node = calloc(1, sizeof(Node));
@@ -312,9 +326,20 @@ bool node_is_struct_or_union(Node *node)
 
 bool variable_node_is_primitive(Node *node)
 {
-	assert(node->type == NODE_TYPE_VARIABLE);
+	switch (node->type)
+	{
+	case NODE_TYPE_VARIABLE:
+		return data_type_is_primitive(&node->var.datatype);
+		break;
 
-	return data_type_is_primitive(&node->var.datatype);
+	case NODE_TYPE_VARIABLE_LIST:
+		return data_type_is_primitive(&variable_in_var_list(node)->var.datatype);
+		break;
+	
+	default:
+		assert(0);
+		break;
+	}
 }
 
 Node *variable_node(Node *node)
@@ -356,6 +381,22 @@ Node *variables_node(Node *node)
 	}
 
 	return NULL;
+}
+
+int variable_list_size(Node *node)
+{
+	set_peek(node->var_list.list, 0);
+	Node *var = peek_ptr(node->var_list.list);
+
+	return var->var.datatype.size;
+}
+
+Node *variable_in_var_list(Node *node)
+{
+	set_peek(node->var_list.list, 0);
+	Node *var = peek_ptr(node->var_list.list);
+
+	return var;
 }
 
 bool node_have_body(Node *node)
@@ -416,6 +457,18 @@ Node *struct_node_for_name(compile_process *process, char *name)
 	Node *node = node_from_symble(process, name);
 
 	if (node && node->type != NODE_TYPE_STRUCT)
+	{
+		return NULL;
+	}
+
+	return node;
+}
+
+Node *union_node_for_name(compile_process *process, char *name)
+{
+	Node *node = node_from_symble(process, name);
+
+	if (node && node->type != NODE_TYPE_UNION)
 	{
 		return NULL;
 	}

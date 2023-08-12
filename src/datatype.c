@@ -27,6 +27,8 @@ void free_datatype(DataType *datatype)
 {
 	if (datatype->secondary)
 		free_datatype_in_heap(datatype->secondary);
+	if (datatype->flags & DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME)
+		free(datatype->type_str);
 	if (datatype->flags & DATATYPE_FLAG_ARRAY)
 	{
 		free_array_brackets(datatype->array.brackets);

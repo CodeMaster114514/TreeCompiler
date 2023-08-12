@@ -355,7 +355,7 @@ void parse_increase_exp(History *history)
 	}
 	next_token();
 	token = peek_token();
-	
+
 	if (token->type != TOKEN_TYPE_IDENTIFIER)
 	{
 		compile_error(current_process, "The operatoring object of the self-increment and subtraction operator must be a variable\n");
@@ -635,6 +635,31 @@ void parse_datatype_init_type_and_size_for_struct(DataType *out, Token *type)
 	}
 }
 
+size_t size_of_union(char *union_name)
+{
+	Symble *sym = symresolver_get_symble_by_name(current_process, union_name);
+	if (!sym)
+	{
+		return 0;
+	}
+
+	assert(sym->type == SYMBLE_TYPE_NODE);
+	Node *union_node = sym->data;
+	assert(union_node && union_node->type == NODE_TYPE_UNION);
+	return union_node->_union.body_node->body.size;
+}
+
+void parse_datatype_init_type_and_size_for_union(DataType *out, Token *type)
+{
+	out->type = DATA_TYPE_UNION;
+	out->size = size_of_union(type->sval);
+	out->union_node = union_node_for_name(current_process, type->sval);
+	if (out->flags & DATATYPE_FLAG_STRUCT_OR_UNION_NO_NAME)
+	{
+		free_token(type);
+	}
+}
+
 void parse_datatype_init_type_and_size(Token *type, Token *secondary, DataType *out, int pointer_depth, int expected_type)
 {
 	if (!parse_datatype_is_secondary_allow(expected_type) && secondary)
@@ -650,12 +675,7 @@ void parse_datatype_init_type_and_size(Token *type, Token *secondary, DataType *
 		parse_datatype_init_type_and_size_for_struct(out, type);
 		break;
 	case DATA_TYPE_EXPECT_UNION:
-		if (type->flags & TOKEN_FLAG_FROM_PARSER)
-		{
-			free(type->sval);
-			free(type);
-		}
-		compile_error(current_process, "Unions are not supported just now.\n");
+		parse_datatype_init_type_and_size_for_union(out, type);
 		break;
 	}
 	if (pointer_depth > 0)
@@ -876,16 +896,20 @@ void parse_finish_body(History *history, Node *body_node, mound *statement, size
 {
 	if (history->flags & HISTORY_FLAG_INSIDE_UNION)
 	{
-		if (largest)
+		if (largest && largest->type == NODE_TYPE_VARIABLE)
 		{
 			*size = variable_size(largest);
+		}
+		else if (largest && largest->type == NODE_TYPE_VARIABLE_LIST)
+		{
+			*size = variable_size(variable_node_or_list(largest));
 		}
 	}
 	int padding = compute_sum_padding(statement);
 	*size += padding;
 	if (largest_align_variable_node)
 	{
-		*size = align_value(*size, variable_size(largest_align_variable_node));
+		*size = align_value(*size, variable_size(largest_align_variable_node->type == NODE_TYPE_VARIABLE_LIST ? variable_in_var_list(largest_align_variable_node) : largest_align_variable_node));
 	}
 	body_node->body.statements = statement;
 	body_node->body.size = *size;
@@ -1018,11 +1042,21 @@ void parse_body_multiple_statment(size_t *size, mound *body, History *history)
 			largest_body = statement_node;
 		}
 
-		if (statement_node->type == NODE_TYPE_VARIABLE)
+		if (statement_node->type == NODE_TYPE_VARIABLE || statement_node->type == NODE_TYPE_VARIABLE_LIST)
 		{
-			if (!largest || largest->var.datatype.size < statement_node->var.datatype.size)
+
+			switch (statement_node->type)
 			{
-				largest = statement_node;
+			case NODE_TYPE_VARIABLE:
+				largest = largest && largest->var.datatype.size > statement_node->var.datatype.size ? largest : statement_node;
+				break;
+
+			case NODE_TYPE_VARIABLE_LIST:
+				largest = largest && largest->var.datatype.size > variable_list_size(statement_node) ? largest : variable_in_var_list(statement_node);
+				break;
+
+			default:
+				break;
 			}
 
 			if (variable_node_is_primitive(statement_node))
@@ -1205,17 +1239,62 @@ void parse_struct_no_new_scope(DataType *datatype, bool isForwardDeclaration)
 	datatype->struct_node = node;
 
 	push_node(node);
+
+	free_history(history);
 }
 
 void parse_struct(DataType *datatype)
 {
-	bool isForwardDeclaration = !token_is_symbol(peek_token(), '{');
+	bool isForwardDeclaration = !this_token_is_symbol('{');
 	if (!isForwardDeclaration)
 	{
 		parse_scope_new();
 	}
 
 	parse_struct_no_new_scope(datatype, isForwardDeclaration);
+
+	if (!isForwardDeclaration)
+	{
+		parse_scope_finish();
+	}
+}
+
+void parse_union_no_new_scope(DataType *datatype, bool isForwardDeclaration)
+{
+	Node *node = NULL; // 存储body node或union node
+	size_t size = 0;
+
+	History *history = history_begin(HISTORY_FLAG_INSIDE_UNION);
+	if (!isForwardDeclaration)
+	{
+		parse_body(&size, history);
+		node = pop_node();
+	}
+
+	make_union_node(datatype->type_str, node);
+
+	if (node)
+	{
+		datatype->size = node->body.size;
+	}
+
+	node = pop_node();
+	datatype->union_node = node;
+
+	push_node(node);
+
+	free_history(history);
+}
+
+void parse_union(DataType *datatype)
+{
+	bool isForwardDeclaration = !this_token_is_symbol('{');
+	if (!isForwardDeclaration)
+	{
+		parse_scope_new();
+	}
+
+	parse_union_no_new_scope(datatype, isForwardDeclaration);
 
 	if (!isForwardDeclaration)
 	{
@@ -1232,6 +1311,7 @@ void parse_struct_or_union(DataType *datatype)
 		break;
 
 	case DATA_TYPE_UNION:
+		parse_union(datatype);
 		break;
 
 	default:
@@ -1248,9 +1328,9 @@ void parse_variable_function_or_struct_union(History *history)
 	if (!symresolver_get_symble_by_name(current_process, datatype.type_str) && data_type_is_struct_or_union(&datatype) && this_token_is_symbol('{'))
 	{
 		parse_struct_or_union(&datatype);
-		Node *struct_node = pop_node();
-		symresovler_build_for_node(current_process, struct_node);
-		push_node(struct_node);
+		Node *struct_or_union_node = pop_node();
+		symresovler_build_for_node(current_process, struct_or_union_node);
+		push_node(struct_or_union_node);
 	}
 	else if (data_type_is_struct_or_union(&datatype) && this_token_is_symbol('{'))
 	{
