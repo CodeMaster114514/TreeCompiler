@@ -133,6 +133,18 @@ void free_node(Node *data)
 		free_node(data->statement.else_statement.body_node);
 		goto over;
 	}
+	if (data->type == NODE_TYPE_STATEMENT_RETURN)
+	{
+		free_node(data->statement.return_statement.exp);
+		goto over;
+	}
+	if (data->type == NODE_TYPE_STATEMENT_FOR)
+	{
+		free_node(data->statement.for_statement.init_node);
+		free_node(data->statement.for_statement.condition_node);
+		free_node(data->statement.for_statement.loop_node);
+		free_node(data->statement.for_statement.body_node);
+	}
 over:
 	free(data);
 }
@@ -304,6 +316,16 @@ Node *make_union_node(char *name, Node *body_node)
 	return node_creat(&(Node){.type = NODE_TYPE_UNION, .flags = flags, ._union.name = name, ._union.body_node = body_node});
 }
 
+Node *make_return_node(Node *exp)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_GOTO, .statement.return_statement.exp = exp});
+}
+
+Node *make_for_node(Node *init_node, Node *condition_node, Node *loop_node, Node *body_node)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_FOR, .statement.for_statement.init_node = init_node, .statement.for_statement.condition_node = condition_node, .statement.for_statement.loop_node = loop_node, .statement.for_statement.body_node = body_node});
+}
+
 Node *node_creat(Node *_node)
 {
 	Node *node = calloc(1, sizeof(Node));
@@ -419,6 +441,10 @@ int node_body_size(Node *node)
 
 	case NODE_TYPE_STATEMENT_ELSE:
 		ret = node->statement.else_statement.body_node->body.size;
+		break;
+	case NODE_TYPE_STATEMENT_FOR:
+		ret = node->statement.for_statement.var_size;
+		break;
 	case NODE_TYPE_STATEMENT_WHILE:
 	case NODE_TYPE_STATEMENT_SWITCH:
 

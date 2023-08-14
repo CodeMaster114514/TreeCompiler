@@ -198,6 +198,7 @@ enum
 	NODE_TYPE_STATEMENT_RETURN,
 	NODE_TYPE_STATEMENT_IF,
 	NODE_TYPE_STATEMENT_ELSE,
+	NODE_TYPE_STATEMENT_FOR,
 	NODE_TYPE_STATEMENT_WHILE,
 	NODE_TYPE_STATEMENT_DO_WHILE,
 	NODE_TYPE_STATEMENT_BREAK,
@@ -372,6 +373,11 @@ struct Node
 		{
 			struct
 			{
+				Node *exp;
+			} return_statement;
+
+			struct
+			{
 				// if (condition){body}
 				Node *condition_node;
 				Node *body_node;
@@ -387,6 +393,17 @@ struct Node
 			{
 				Node *body_node;
 			} else_statement;
+
+			struct
+			{
+				Node *init_node;
+				Node *condition_node;
+				Node *loop_node;
+
+				size_t var_size;
+				Node *body_node;
+			} for_statement;
+			
 		} statement;
 	};
 
@@ -624,6 +641,8 @@ Node *union_node_for_name(compile_process *process, char *name);
 Node *make_union_node(char *name, Node *body_node);
 int variable_list_size(Node *node);
 Node *variable_in_var_list(Node *node);
+Node *make_return_node(Node *exp);
+Node *make_for_node(Node *init_node, Node *condition_node, Node *loop_node, Node *body_node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

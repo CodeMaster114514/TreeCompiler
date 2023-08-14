@@ -281,10 +281,11 @@ void parse_exp_normal(History *history)
 	char *op = token->sval;
 	Node *node_left = node_peek_expressionable();
 	if (!node_left)
+	{
 		return;
+	}
 	// 跳到下一个token
 	next_token();
-	// 弹出左节点
 	pop_node();
 	node_left->flags |= NODE_FLAG_INSIDE_EXPRESSION;
 	parse_expressionable_for_op(history, op);
@@ -344,24 +345,27 @@ void parse_parentheses(History *history)
 
 void parse_increase_exp(History *history)
 {
-	Token *token = peek_token();
+	Token *token = next_token();
 	char *op = token->sval;
-	Node *node = node_peek_expressionable();
+	Node *node = peek_node();
 	if (node && node->type == NODE_TYPE_IDENTIFIER)
 	{
 		pop_node();
 		make_exp_node(node, NULL, op);
 		return;
 	}
-	next_token();
-	token = peek_token();
-
-	if (token->type != TOKEN_TYPE_IDENTIFIER)
+	else
 	{
-		compile_error(current_process, "The operatoring object of the self-increment and subtraction operator must be a variable\n");
-	}
+		next_token();
+		token = peek_token();
 
-	parse_single_token_to_node();
+		if (token->type != TOKEN_TYPE_IDENTIFIER)
+		{
+		compile_error(current_process, "The operatoring object of the self-increment and subtraction operator must be a variable\n");
+		}
+
+		parse_single_token_to_node();
+	}
 	node = pop_node();
 
 	make_exp_node(node, NULL, op);
@@ -1189,7 +1193,6 @@ void parse_function(DataType *ret_datatype, Token *name_token, History *history)
 	expect_sym(')');
 	function_node->function.args.variables = args;
 	if (symresolver_get_symble_for_native_function_by_name(current_process, name_token->sval))
-		;
 	{
 		function_node->function.flags |= FUNCTION_FLAG_IS_NATIVE_FUNCTION;
 	}
@@ -1425,6 +1428,106 @@ void parse_if_statement(History *history)
 	make_if_node(condition, body, var_size, next);
 }
 
+void parse_return_statement(History *history)
+{
+	expect_keyword("return");
+	if (this_token_is_symbol(';'))
+	{
+		make_return_node(NULL);
+		goto over;
+	}
+	parse_expressionable_root(history);
+	Node *exp = pop_node();
+	make_return_node(exp);
+
+over:
+	expect_sym(';');
+}
+
+bool parse_for_loop_part(History *history)
+{
+	if (this_token_is_symbol(';'))
+	{
+		next_token();
+		return false;
+	}
+
+	if (peek_token()->type == TOKEN_TYPE_KEYWORDS)
+	{
+		parse_keyword(history);
+	}
+	else
+	{
+		parse_expressionable_root(history);
+		expect_sym(';');
+	}
+	return true;
+}
+
+bool parse_for_loop_part_loop(History *history)
+{
+	if (this_token_is_symbol(')'))
+	{
+		next_token();
+		return false;
+	}
+
+	parse_expressionable_root(history);
+	return true;
+}
+
+void parse_for_statement(History *history)
+{
+	expect_keyword("for");
+
+	parse_scope_new();
+
+	Node *init_node = NULL, *condition_node = NULL, *loop_node = NULL, *body_node = NULL;
+	size_t var_size = 0;
+
+	expect_op("(");
+
+	if (parse_for_loop_part(history))
+	{
+		init_node = pop_node();
+	}
+
+	if (init_node)
+	{
+		switch (init_node->type)
+		{
+		case NODE_TYPE_VARIABLE:
+			var_size += variable_size(init_node);
+			break;
+
+		case NODE_TYPE_VARIABLE_LIST:
+			var_size += variable_list_size(init_node);
+			break;
+		
+		default:
+			break;
+		}
+	}
+
+	if (parse_for_loop_part(history))
+	{
+		condition_node = pop_node();
+	}
+
+	if (parse_for_loop_part_loop(history))
+	{
+		loop_node = pop_node();
+	}
+
+	expect_sym(')');
+
+	parse_body(&var_size, history);
+	body_node = pop_node();
+
+	parse_scope_finish();
+	make_for_node(init_node, condition_node, loop_node, body_node);
+}
+
 void parse_keyword(History *history)
 {
 	Token *token = peek_token();
@@ -1434,9 +1537,21 @@ void parse_keyword(History *history)
 		return;
 	}
 
-	if (S_EQ(token->sval, "if"))
+	if (this_token_is_keyword("if"))
 	{
 		parse_if_statement(history);
+		return;
+	}
+
+	if (this_token_is_keyword("return"))
+	{
+		parse_return_statement(history);
+		return;
+	}
+
+	if (this_token_is_keyword("for"))
+	{
+		parse_for_statement(history);
 		return;
 	}
 }
