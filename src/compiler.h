@@ -403,6 +403,18 @@ struct Node
 				size_t var_size;
 				Node *body_node;
 			} for_statement;
+
+			struct
+			{
+				Node *condition_node;
+				Node *body_node;
+			} while_statement;
+
+			struct
+			{
+				Node *condition_node;
+				Node *body_node;
+			} do_while_statement;
 			
 		} statement;
 	};
@@ -643,6 +655,8 @@ int variable_list_size(Node *node);
 Node *variable_in_var_list(Node *node);
 Node *make_return_node(Node *exp);
 Node *make_for_node(Node *init_node, Node *condition_node, Node *loop_node, Node *body_node);
+Node *make_while_node(Node *condition_node, Node *body_ndoe);
+Node *make_do_while_node(Node *condition_node, Node *body_node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

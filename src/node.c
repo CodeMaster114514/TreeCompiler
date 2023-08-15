@@ -53,6 +53,21 @@ void free_function_node(Node *data)
 		free_node(data->function.body_node);
 }
 
+void free_for_statement_node(Node *data)
+{
+	Node *init_node = data->statement.for_statement.init_node;
+	Node *condition_node = data->statement.for_statement.condition_node;
+	Node *loop_node = data->statement.for_statement.loop_node;
+	Node *body_node = data->statement.for_statement.body_node;
+
+	if (init_node)
+		free_node(init_node);
+	if (condition_node)
+		free_node(condition_node);
+	if (loop_node)
+		free_node(loop_node);
+}
+
 void free_node(Node *data)
 {
 	if (data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER)
@@ -140,10 +155,20 @@ void free_node(Node *data)
 	}
 	if (data->type == NODE_TYPE_STATEMENT_FOR)
 	{
-		free_node(data->statement.for_statement.init_node);
-		free_node(data->statement.for_statement.condition_node);
-		free_node(data->statement.for_statement.loop_node);
-		free_node(data->statement.for_statement.body_node);
+		free_for_statement_node(data);
+		goto over;
+	}
+	if (data->type == NODE_TYPE_STATEMENT_WHILE)
+	{
+		free_node(data->statement.while_statement.condition_node);
+		free_node(data->statement.while_statement.body_node);
+		goto over;
+	}
+	if (data->type == NODE_TYPE_STATEMENT_DO_WHILE)
+	{
+		free_node(data->statement.do_while_statement.condition_node);
+		free_node(data->statement.do_while_statement.body_node);
+		goto over;
 	}
 over:
 	free(data);
@@ -326,12 +351,23 @@ Node *make_for_node(Node *init_node, Node *condition_node, Node *loop_node, Node
 	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_FOR, .statement.for_statement.init_node = init_node, .statement.for_statement.condition_node = condition_node, .statement.for_statement.loop_node = loop_node, .statement.for_statement.body_node = body_node});
 }
 
+Node *make_while_node(Node *condition_node, Node *body_ndoe)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_WHILE, .statement.while_statement.condition_node = condition_node, .statement.while_statement.body_node = body_ndoe});
+}
+
+Node *make_do_while_node(Node *condition_node, Node *body_node)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_DO_WHILE, .statement.do_while_statement.condition_node = condition_node, .statement.do_while_statement.body_node = body_node});
+}
+
 Node *node_creat(Node *_node)
 {
 	Node *node = calloc(1, sizeof(Node));
 	memcpy(node, _node, sizeof(Node));
 	node->binded.owner = parse_current_body;
 	node->binded.function = parse_current_function;
+	node->pos = current_process->pos;
 	push_node(node);
 	return node;
 }

@@ -356,19 +356,18 @@ void parse_increase_exp(History *history)
 	}
 	else
 	{
-		next_token();
 		token = peek_token();
 
 		if (token->type != TOKEN_TYPE_IDENTIFIER)
 		{
-		compile_error(current_process, "The operatoring object of the self-increment and subtraction operator must be a variable\n");
+			compile_error(current_process, "The operatoring object of the self-increment and subtraction operator must be a variable\n");
 		}
 
 		parse_single_token_to_node();
 	}
 	node = pop_node();
 
-	make_exp_node(node, NULL, op);
+	make_exp_node(NULL, node, op);
 }
 
 int parse_exp(History *history)
@@ -1503,7 +1502,7 @@ void parse_for_statement(History *history)
 		case NODE_TYPE_VARIABLE_LIST:
 			var_size += variable_list_size(init_node);
 			break;
-		
+
 		default:
 			break;
 		}
@@ -1526,6 +1525,42 @@ void parse_for_statement(History *history)
 
 	parse_scope_finish();
 	make_for_node(init_node, condition_node, loop_node, body_node);
+}
+
+void parse_keyword_parentheses_expression(char *keyword)
+{
+	expect_keyword(keyword);
+	expect_op("(");
+
+	History *history = history_begin(0);
+	parse_expressionable_root(history);
+	free_history(history);
+
+	expect_sym(')');
+}
+
+void parse_while_statement(History *history)
+{
+	parse_keyword_parentheses_expression("while");
+	Node *exp_node = pop_node();
+
+	parse_body(NULL, history);
+	Node *body_node = pop_node();
+
+	make_while_node(exp_node, body_node);
+}
+
+void parse_do_while_statement(History *history)
+{
+	expect_keyword("do");
+
+	parse_body(NULL, history);
+	Node *body_node = pop_node();
+
+	parse_keyword_parentheses_expression("while");
+	Node *condition_node = pop_node();
+
+	make_do_while_node(condition_node, body_node);
 }
 
 void parse_keyword(History *history)
@@ -1553,6 +1588,16 @@ void parse_keyword(History *history)
 	{
 		parse_for_statement(history);
 		return;
+	}
+
+	if (this_token_is_keyword("while"))
+	{
+		parse_while_statement(history);
+	}
+
+	if (this_token_is_keyword("do"))
+	{
+		parse_do_while_statement(history);
 	}
 }
 
