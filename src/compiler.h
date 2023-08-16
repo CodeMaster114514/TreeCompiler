@@ -233,11 +233,6 @@ typedef struct Node Node;
 
 typedef struct
 {
-	int index;
-} parsed_switch_case;
-
-typedef struct
-{
 	// save Node *
 	mound *n_brackets;
 } ArrayBrackets;
@@ -373,7 +368,12 @@ struct Node
 			// 存储函数体内所有临时变量所占用的栈堆大小
 			size_t stack_size;
 		} function;
-		
+
+		struct
+		{
+			Node *name_node;
+		} label;
+
 		union
 		{
 			struct
@@ -429,6 +429,17 @@ struct Node
 				mound *cases;
 				bool has_default_case;
 			} switch_statement;
+
+			struct
+			{
+				Node *label_node;
+			} goto_statement;
+
+			struct
+			{
+				Node *exp_node;
+			} case_statement;
+
 		} statement;
 	};
 
@@ -673,6 +684,9 @@ Node *make_do_while_node(Node *condition_node, Node *body_node);
 Node *make_switch_node(Node *exp_node, Node *body_node, mound *cases, bool has_default_case);
 Node *make_braek_node();
 Node *make_continue_node();
+Node *make_label_node(Node *label_name_node);
+Node *make_goto_node(Node *label_node);
+Node *make_case_node(Node *exp_node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

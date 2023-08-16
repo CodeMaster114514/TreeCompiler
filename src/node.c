@@ -68,9 +68,23 @@ void free_for_statement_node(Node *data)
 		free_node(loop_node);
 }
 
+void free_switch_node(Node *data)
+{
+	mound *cases = data->statement.switch_statement.cases;
+	free_node(data->statement.switch_statement.body_node);
+	free_node(data->statement.switch_statement.exp_node);
+	set_peek(cases, 0);
+	Node *case_node = next_ptr(cases);
+	while (case_node)
+	{
+		free_node(case_node);
+		case_node = next_ptr(cases);
+	}
+}
+
 void free_node(Node *data)
 {
-	if (data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER)
+	if (data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER || data->type ==NODE_TYPE_STATEMENT_BREAK || data->type == NODE_TYPE_STATEMENT_CONTINUE)
 	{
 		goto over;
 	}
@@ -168,6 +182,26 @@ void free_node(Node *data)
 	{
 		free_node(data->statement.do_while_statement.condition_node);
 		free_node(data->statement.do_while_statement.body_node);
+		goto over;
+	}
+	if (data->type == NODE_TYPE_LABEL)
+	{
+		free_node(data->label.name_node);
+		goto over;
+	}
+	if (data->type == NODE_TYPE_STATEMENT_GOTO)
+	{
+		free_node(data->statement.goto_statement.label_node);
+		goto over;
+	}
+	if (data->type == NODE_TYPE_STATEMENT_CASE)
+	{
+		free_node(data->statement.case_statement.exp_node);
+		goto over;
+	}
+	if (data->type == NODE_TYPE_STATEMENT_SWITCH)
+	{
+		free_switch_node(data);
 		goto over;
 	}
 over:
@@ -368,12 +402,27 @@ Node *make_switch_node(Node *exp_node, Node *body_node, mound *cases, bool has_d
 
 Node *make_braek_node()
 {
-	return node_creat(&(Node){.type = NODE_TYPE_BRACKET});
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_BREAK});
 }
 
 Node *make_continue_node()
 {
 	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_CONTINUE});
+}
+
+Node *make_label_node(Node *label_name_node)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_LABEL, .label.name_node = label_name_node});
+}
+
+Node *make_goto_node(Node *label_node)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_GOTO, .statement.goto_statement.label_node = label_node});
+}
+
+Node *make_case_node(Node *exp_node)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_CASE, .statement.case_statement.exp_node = exp_node});
 }
 
 Node *node_creat(Node *_node)

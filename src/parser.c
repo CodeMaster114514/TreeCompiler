@@ -102,7 +102,7 @@ static void parse_nl_or_comment(Token *token)
 
 void parse_new_switch_statement(History *history)
 {
-	history->_switch.case_data.cases = creat_mound(sizeof(parsed_switch_case));
+	history->_switch.case_data.cases = creat_mound(sizeof(Node *));
 	history->flags |= HISTORY_FLAG_INSIDE_SWITCH_STATEMENT;
 }
 
@@ -114,10 +114,7 @@ void parse_end_switch_statement(History *history)
 void parse_register_case(History *history, Node *case_node)
 {
 	assert(history->flags & HISTORY_FLAG_INSIDE_SWITCH_STATEMENT);
-	parsed_switch_case switch_case;
-	#warning "To set index"
-	switch_case.index = 0;
-	push(history->_switch.case_data.cases, &switch_case);
+	push(history->_switch.case_data.cases, &case_node);
 }
 
 static Token *next_token()
@@ -917,12 +914,12 @@ void parse_statement(History *history)
 		parse_keyword(history);
 		return;
 	}
+	parse_expressionable_root(history);
 	if (peek_token()->type == TOKEN_TYPE_SYMBOL && !this_token_is_symbol(';'))
 	{
 		parse_symbol(history);
 		return;
 	}
-	parse_expressionable_root(history);
 	expect_sym(';');
 }
 
@@ -1624,6 +1621,39 @@ void parse_continue(History *history)
 	make_continue_node();
 }
 
+void parse_goto(History *history)
+{
+	expect_keyword("goto");
+	if (peek_token()->type != TOKEN_TYPE_IDENTIFIER)
+	{
+		compile_error(current_process, "The goto statement must use identifier, but you provide others.\n");
+	}
+	parse_identifier(history);
+	expect_sym(';');
+
+	Node *label_node = pop_node();
+	make_goto_node(label_node);
+}
+
+void parse_case(History *history)
+{
+	expect_keyword("case");
+	parse_expressionable_root(history);
+	expect_sym(':');
+	Node *exp_node = pop_node();
+	make_case_node(exp_node);
+
+	if (exp_node->type != NODE_TYPE_NUMBER)
+	{
+		compile_error(current_process, "We only spurre in case");
+	}
+
+	Node *case_node = pop_node();
+	parse_register_case(history, case_node);
+
+	parse_statement(history);
+}
+
 void parse_keyword(History *history)
 {
 	Token *token = peek_token();
@@ -1654,23 +1684,42 @@ void parse_keyword(History *history)
 	if (this_token_is_keyword("while"))
 	{
 		parse_while_statement(history);
+		return;
 	}
 
 	if (this_token_is_keyword("do"))
 	{
 		parse_do_while_statement(history);
+		return;
 	}
+
 	if (this_token_is_keyword("switch"))
 	{
 		parse_switch_statement(history);
+		return;
 	}
+
 	if (this_token_is_keyword("break"))
 	{
 		parse_break(history);
+		return;
 	}
+
 	if (this_token_is_keyword("continue"))
 	{
 		parse_continue(history);
+		return;
+	}
+
+	if (this_token_is_keyword("goto"))
+	{
+		parse_goto(history);
+		return;
+	}
+
+	if (this_token_is_keyword("case"))
+	{
+		parse_case(history);
 	}
 }
 
@@ -1727,6 +1776,20 @@ void parse_keyword_for_global()
 	push_node(node);
 }
 
+void parse_label(History *history)
+{
+	expect_sym(':');
+
+	Node *label_name_node = peek_node();
+	if (label_name_node->type != NODE_TYPE_IDENTIFIER)
+	{
+		compile_error(current_process, "The identifier must be used to declare the label\n");
+	}
+	pop_node();
+
+	make_label_node(label_name_node);
+}
+
 void parse_symbol(History *history)
 {
 	if (this_token_is_symbol('{'))
@@ -1735,6 +1798,11 @@ void parse_symbol(History *history)
 		History *second = history_down(history, history->flags);
 		parse_body(&size, second);
 		free_history(second);
+	}
+
+	if (this_token_is_symbol(':'))
+	{
+		parse_label(history);
 	}
 }
 
