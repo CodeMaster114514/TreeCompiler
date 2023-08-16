@@ -348,17 +348,32 @@ Node *make_return_node(Node *exp)
 
 Node *make_for_node(Node *init_node, Node *condition_node, Node *loop_node, Node *body_node)
 {
-	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_FOR, .statement.for_statement.init_node = init_node, .statement.for_statement.condition_node = condition_node, .statement.for_statement.loop_node = loop_node, .statement.for_statement.body_node = body_node});
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_FOR, .statement.for_statement = {.init_node = init_node, .condition_node = condition_node, .loop_node = loop_node, .body_node = body_node}});
 }
 
 Node *make_while_node(Node *condition_node, Node *body_ndoe)
 {
-	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_WHILE, .statement.while_statement.condition_node = condition_node, .statement.while_statement.body_node = body_ndoe});
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_WHILE, .statement.while_statement = {.condition_node = condition_node, .body_node = body_ndoe}});
 }
 
 Node *make_do_while_node(Node *condition_node, Node *body_node)
 {
-	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_DO_WHILE, .statement.do_while_statement.condition_node = condition_node, .statement.do_while_statement.body_node = body_node});
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_DO_WHILE, .statement.do_while_statement = {.condition_node = condition_node, .body_node = body_node}});
+}
+
+Node *make_switch_node(Node *exp_node, Node *body_node, mound *cases, bool has_default_case)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_SWITCH, .statement.switch_statement = {.exp_node = exp_node, .body_node = body_node, .cases = cases, .has_default_case = has_default_case}});
+}
+
+Node *make_braek_node()
+{
+	return node_creat(&(Node){.type = NODE_TYPE_BRACKET});
+}
+
+Node *make_continue_node()
+{
+	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_CONTINUE});
 }
 
 Node *node_creat(Node *_node)

@@ -233,6 +233,11 @@ typedef struct Node Node;
 
 typedef struct
 {
+	int index;
+} parsed_switch_case;
+
+typedef struct
+{
 	// save Node *
 	mound *n_brackets;
 } ArrayBrackets;
@@ -415,7 +420,15 @@ struct Node
 				Node *condition_node;
 				Node *body_node;
 			} do_while_statement;
-			
+
+			struct
+			{
+				Node *exp_node;
+				Node *body_node;
+				
+				mound *cases;
+				bool has_default_case;
+			} switch_statement;
 		} statement;
 	};
 
@@ -657,6 +670,9 @@ Node *make_return_node(Node *exp);
 Node *make_for_node(Node *init_node, Node *condition_node, Node *loop_node, Node *body_node);
 Node *make_while_node(Node *condition_node, Node *body_ndoe);
 Node *make_do_while_node(Node *condition_node, Node *body_node);
+Node *make_switch_node(Node *exp_node, Node *body_node, mound *cases, bool has_default_case);
+Node *make_braek_node();
+Node *make_continue_node();
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

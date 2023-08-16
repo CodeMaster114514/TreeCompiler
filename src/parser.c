@@ -50,12 +50,23 @@ enum
 	HISTORY_FLAG_IS_GLOBAL_SCOPE = 0b00001000,
 	HISTORY_FlAG_INSIDE_FUNCTION_BODY = 0b00100000,
 	HISTORY_FLAG_FUNCTION_HAVE_VARIABLE = 0b01000000,
-	HISTORY_FLAG_INSIDE_EXPRESSION = 0b10000000
+	HISTORY_FLAG_INSIDE_EXPRESSION = 0b10000000,
+	HISTORY_FLAG_INSIDE_SWITCH_STATEMENT = 0b100000000
 };
 
 typedef struct
 {
+	mound *cases;
+	bool has_default_case;
+} History_cases;
+
+typedef struct
+{
 	int flags;
+	struct
+	{
+		History_cases case_data;
+	} _switch;
 } History;
 
 void parse_expressionable(History *history);
@@ -87,6 +98,26 @@ static void parse_nl_or_comment(Token *token)
 		next(current_process->tokens);
 		token = peek(current_process->tokens);
 	}
+}
+
+void parse_new_switch_statement(History *history)
+{
+	history->_switch.case_data.cases = creat_mound(sizeof(parsed_switch_case));
+	history->flags |= HISTORY_FLAG_INSIDE_SWITCH_STATEMENT;
+}
+
+void parse_end_switch_statement(History *history)
+{
+	history->flags &= ~HISTORY_FLAG_INSIDE_SWITCH_STATEMENT;
+}
+
+void parse_register_case(History *history, Node *case_node)
+{
+	assert(history->flags & HISTORY_FLAG_INSIDE_SWITCH_STATEMENT);
+	parsed_switch_case switch_case;
+	#warning "To set index"
+	switch_case.index = 0;
+	push(history->_switch.case_data.cases, &switch_case);
 }
 
 static Token *next_token()
@@ -1561,6 +1592,36 @@ void parse_do_while_statement(History *history)
 	Node *condition_node = pop_node();
 
 	make_do_while_node(condition_node, body_node);
+	expect_sym(';');
+}
+
+void parse_switch_statement(History *history)
+{
+	parse_new_switch_statement(history);
+	parse_keyword_parentheses_expression("switch");
+	Node *exp_node = pop_node();
+
+	size_t var_size = 0;
+	parse_body(&var_size, history);
+
+	Node *body_node = pop_node();
+
+	make_switch_node(exp_node, body_node, history->_switch.case_data.cases, history->_switch.case_data.has_default_case);
+	parse_end_switch_statement(history);
+}
+
+void parse_break(History *history)
+{
+	expect_keyword("break");
+	expect_sym(';');
+	make_braek_node();
+}
+
+void parse_continue(History *history)
+{
+	expect_keyword("continue");
+	expect_sym(';');
+	make_continue_node();
 }
 
 void parse_keyword(History *history)
@@ -1598,6 +1659,18 @@ void parse_keyword(History *history)
 	if (this_token_is_keyword("do"))
 	{
 		parse_do_while_statement(history);
+	}
+	if (this_token_is_keyword("switch"))
+	{
+		parse_switch_statement(history);
+	}
+	if (this_token_is_keyword("break"))
+	{
+		parse_break(history);
+	}
+	if (this_token_is_keyword("continue"))
+	{
+		parse_continue(history);
 	}
 }
 
