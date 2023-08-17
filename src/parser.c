@@ -51,7 +51,8 @@ enum
 	HISTORY_FlAG_INSIDE_FUNCTION_BODY = 0b00100000,
 	HISTORY_FLAG_FUNCTION_HAVE_VARIABLE = 0b01000000,
 	HISTORY_FLAG_INSIDE_EXPRESSION = 0b10000000,
-	HISTORY_FLAG_INSIDE_SWITCH_STATEMENT = 0b100000000
+	HISTORY_FLAG_INSIDE_SWITCH_STATEMENT = 0b100000000,
+	HISTORY_FLAG_PARENTHESES_IS_NOT_A_FUNCTION_CALL = 0b1000000000
 };
 
 typedef struct
@@ -398,6 +399,28 @@ void parse_increase_exp(History *history)
 	make_exp_node(NULL, node, op);
 }
 
+void parse_for_tenary(History *history)
+{
+	Node *condition_node = pop_node();
+	if (!node_is_expressionable(condition_node))
+	{
+		compile_error(current_process, "The condition must be a expressionable\n");
+	}
+	expect_op("?");
+	History *second = history_down(history, HISTORY_FLAG_PARENTHESES_IS_NOT_A_FUNCTION_CALL);
+	parse_expressionable_root(second);
+	Node *true_node = pop_node();
+	free_history(second);
+	expect_sym(':');
+	second = history_down(history, HISTORY_FLAG_PARENTHESES_IS_NOT_A_FUNCTION_CALL);
+	parse_expressionable_root(second);
+	Node *false_node = pop_node();
+	free_history(second);
+	make_tenary_node(true_node, false_node);
+	Node *tenary_node = pop_node();
+	make_exp_node(condition_node, tenary_node, "?");
+}
+
 int parse_exp(History *history)
 {
 	if (this_token_is_operator(","))
@@ -411,6 +434,10 @@ int parse_exp(History *history)
 	else if (this_token_is_self_increase_operator())
 	{
 		parse_increase_exp(history);
+	}
+	else if (this_token_is_operator("?"))
+	{
+		parse_for_tenary(history);
 	}
 	else
 	{

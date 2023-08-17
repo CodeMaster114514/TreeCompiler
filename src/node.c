@@ -84,127 +84,109 @@ void free_switch_node(Node *data)
 
 void free_node(Node *data)
 {
-	if (data->type == NODE_TYPE_NUMBER || data->type == NODE_TYPE_IDENTIFIER || data->type ==NODE_TYPE_STATEMENT_BREAK || data->type == NODE_TYPE_STATEMENT_CONTINUE)
+	switch (data->type)
 	{
-		goto over;
-	}
-	if (data->type == NODE_TYPE_VARIABLE)
-	{
+	case NODE_TYPE_NUMBER:
+	case NODE_TYPE_IDENTIFIER:
+	case NODE_TYPE_STATEMENT_BREAK:
+	case NODE_TYPE_STATEMENT_CONTINUE:
+		break;
+
+	case NODE_TYPE_VARIABLE:
 		free_datatype(&data->var.datatype);
 		if (data->var.value)
 			free_node(data->var.value);
+		break;
 
-		goto over;
-	}
-	if (data->type == NODE_TYPE_VARIABLE_LIST)
-	{
+	case NODE_TYPE_VARIABLE_LIST:
 		free_variable_list_node(data);
+		break;
 
-		goto over;
-	}
-	if (data->type == NODE_TYPE_EXPRESSION)
-	{
+	case NODE_TYPE_EXPRESSION:
 		if (data->exp.node_left)
 			free_node(data->exp.node_left);
 		if (data->exp.node_right)
 			free_node(data->exp.node_right);
+		break;
 
-		goto over;
-	}
-	if (data->type == NODE_TYPE_EXPRESSION_PARENTHESES)
-	{
+	case NODE_TYPE_TENARY:
+		free_node(data->tenary.true_node);
+		free_node(data->tenary.false_node);
+		break;
+
+	case NODE_TYPE_EXPRESSION_PARENTHESES:
 		free_node(data->parenthesis.exp);
+		break;
 
-		goto over;
-	}
-	if (data->type == NODE_TYPE_BRACKET)
-	{
+	case NODE_TYPE_BRACKET:
 		free_node(data->brackets.inner);
+		break;
 
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STRUCT)
-	{
+	case NODE_TYPE_STRUCT:
 		if (data->_struct.body_node)
 			free_node(data->_struct.body_node);
+		break;
 
-		goto over;
-	}
-	if (data->type == NODE_TYPE_UNION)
-	{
-		if (data->_union.body_node);
-			free_node(data->_union.body_node);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_BODY)
-	{
+	case NODE_TYPE_UNION:
+		if (data->_union.body_node)
+			;
+		free_node(data->_union.body_node);
+		break;
+
+	case NODE_TYPE_BODY:
 		free_body_node(data);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_FUNCTION)
-	{
-		free_function_node(data);
+		break;
 
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_IF)
-	{
+	case NODE_TYPE_FUNCTION:
+		free_function_node(data);
+		break;
+
+	case NODE_TYPE_STATEMENT_IF:
 		free_node(data->statement.if_statement.condition_node);
 		free_node(data->statement.if_statement.body_node);
 
 		if (data->statement.if_statement.next)
 			free_node(data->statement.if_statement.next);
+		break;
 
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_ELSE)
-	{
+	case NODE_TYPE_STATEMENT_ELSE:
 		free_node(data->statement.else_statement.body_node);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_RETURN)
-	{
+		break;
+
+	case NODE_TYPE_STATEMENT_RETURN:
 		free_node(data->statement.return_statement.exp);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_FOR)
-	{
+		break;
+
+	case NODE_TYPE_STATEMENT_FOR:
 		free_for_statement_node(data);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_WHILE)
-	{
+		break;
+
+	case NODE_TYPE_STATEMENT_WHILE:
 		free_node(data->statement.while_statement.condition_node);
 		free_node(data->statement.while_statement.body_node);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_DO_WHILE)
-	{
+		break;
+	
+	case NODE_TYPE_STATEMENT_DO_WHILE:
 		free_node(data->statement.do_while_statement.condition_node);
 		free_node(data->statement.do_while_statement.body_node);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_LABEL)
-	{
+		break;
+	
+	case NODE_TYPE_LABEL:
 		free_node(data->label.name_node);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_GOTO)
-	{
+		break;
+	
+	case NODE_TYPE_STATEMENT_GOTO:
 		free_node(data->statement.goto_statement.label_node);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_CASE)
-	{
-		free_node(data->statement.case_statement.exp_node);
-		goto over;
-	}
-	if (data->type == NODE_TYPE_STATEMENT_SWITCH)
-	{
+		break;
+
+	case NODE_TYPE_STATEMENT_SWITCH:
 		free_switch_node(data);
-		goto over;
+		break;
+
+	case NODE_TYPE_STATEMENT_CASE:
+		free_node(data->statement.case_statement.exp_node);
+		break;
 	}
-over:
 	free(data);
 }
 
@@ -425,6 +407,11 @@ Node *make_case_node(Node *exp_node)
 	return node_creat(&(Node){.type = NODE_TYPE_STATEMENT_CASE, .statement.case_statement.exp_node = exp_node});
 }
 
+Node *make_tenary_node(Node *true_node, Node *false_node)
+{
+	return node_creat(&(Node){.type = NODE_TYPE_TENARY, .tenary = {.true_node = true_node, .false_node = false_node}});
+}
+
 Node *node_creat(Node *_node)
 {
 	Node *node = calloc(1, sizeof(Node));
@@ -457,7 +444,7 @@ bool variable_node_is_primitive(Node *node)
 	case NODE_TYPE_VARIABLE_LIST:
 		return data_type_is_primitive(&variable_in_var_list(node)->var.datatype);
 		break;
-	
+
 	default:
 		assert(0);
 		break;

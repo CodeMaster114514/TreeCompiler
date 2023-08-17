@@ -286,7 +286,12 @@ struct Node
 			// 在括号中的表达式
 			Node *exp;
 		} parenthesis;
-		
+
+		struct
+		{
+			Node *true_node;
+			Node *false_node;
+		} tenary;
 
 		struct
 		{
@@ -687,6 +692,7 @@ Node *make_continue_node();
 Node *make_label_node(Node *label_name_node);
 Node *make_goto_node(Node *label_node);
 Node *make_case_node(Node *exp_node);
+Node *make_tenary_node(Node *true_node, Node *false_node);
 
 // in file datatype.c
 bool data_type_is_struct_or_union(DataType *datatype);

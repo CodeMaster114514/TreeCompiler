@@ -17,8 +17,8 @@ else
 	COMPILE_METHOR= drvrvgg#乱码使其报错
 endif
 
-main: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler.h
-	$(COMPILER) $(CODE_LOCATION)main.c ${INCLUDE} $(COMPILE_METHOR) ${OBJECTS} -o main
+tcc: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler.h
+	$(COMPILER) $(CODE_LOCATION)main.c ${INCLUDE} $(COMPILE_METHOR) ${OBJECTS} -o tcc
 
 ./build/compiler.o: $(CODE_LOCATION)./compiler.c $(CODE_LOCATION)./compiler.h
 	$(COMPILER) $(CODE_LOCATION)./compiler.c ${INCLUDE} $(COMPILE_METHOR) -o ./build/compiler.o -c
@@ -70,7 +70,7 @@ clean:
 	rm ${OBJECTS} ${LIB_FILE} -rf
 	rm ./main
 
-install: main
+install: tcc
 	rm $(MAIN_INSTALL)tcc -rf
-	ln main $(MAIN_INSTALL)tcc
+	install -m 755 main $(MAIN_INSTALL)tcc
 #	cp $(LIB_FILE) $(LIB_INSTALL)
