@@ -8,6 +8,12 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <locale.h>
+#include <libintl.h>
+
+#define _(string) gettext(string)
+#define LOCALEDIR "/usr/share/locale/"
+#define PACKAGE "tcc"
 
 #include "mound.h"
 
@@ -46,6 +52,7 @@ typedef struct
 	case '=':                            \
 	case '~':                            \
 	case '|':                            \
+	case '&':                            \
 	case '(':                            \
 	case '[':                            \
 	case ',':                            \

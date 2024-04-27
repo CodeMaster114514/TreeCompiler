@@ -111,12 +111,12 @@ Node *symresolver_node(Symble *symble)
 
 void symresolver_build_for_variable(compile_process *process, Node *node)
 {
-	compile_error(process, "can’t build variable symble");
+	compile_error(process, "can’t build variable symble\n");
 }
 
 void symresolver_build_for_native_function(compile_process *process, Node *node)
 {
-	compile_error(process, "can’t build varible symble");
+	compile_error(process, "can’t build function symble\n");
 }
 
 void symresolver_build_for_struct(compile_process *process, Node *node)

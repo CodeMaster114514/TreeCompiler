@@ -17,10 +17,10 @@ void compile_error(compile_process *CompileProcess, const char *msg, ...)
 {
 	va_list args;
 	va_start(args, msg);
-	vfprintf(stderr, msg, args);
+	vfprintf(stderr, _(msg), args);
 	va_end(args);
 
-	fprintf(stderr, "on line %i,col %i in file %s\n",
+	fprintf(stderr, _("on line %i,col %i in file %s\n"),
 			CompileProcess->pos.line,
 			CompileProcess->pos.col,
 			CompileProcess->in_fp.file_path);
@@ -32,10 +32,10 @@ void compile_warning(compile_process *CompileProcess, const char *msg, ...)
 {
 	va_list args;
 	va_start(args, msg);
-	vfprintf(stderr, msg, args);
+	vfprintf(stderr, _(msg), args);
 	va_end(args);
 
-	fprintf(stderr, "on line %i,col %i in file %s",
+	fprintf(stderr, _("on line %i,col %i in file %s"),
 			CompileProcess->pos.line,
 			CompileProcess->pos.col,
 			CompileProcess->in_fp.file_path);

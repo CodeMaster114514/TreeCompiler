@@ -304,6 +304,37 @@ void parse_reorder_expression(Node **out)
 	}
 }
 
+void parse_get_point_exp(History *history)
+{
+	Token *token = peek_token();
+	char *op = token->sval;
+	next_token();
+
+	Token *check = peek_token();
+	if (check->type != TOKEN_TYPE_IDENTIFIER)
+	{
+		char *out;
+		switch(check->type)
+		{
+			case TOKEN_TYPE_NUMBER:
+				out = "We can't get number's point!\n";
+				break;
+			case TOKEN_TYPE_KEYWORDS:
+				out = "Keyword should be use d in right place!\n";
+				break;
+			default:
+				out = "Have something wrong in here.\n";
+				break;
+		}
+		compile_error(current_process, out);
+	}
+
+	parse_single_token_to_node();
+	Node *right_node = pop_node();
+
+	make_exp_node(NULL, right_node, op);
+}
+
 void parse_exp_normal(History *history)
 {
 	Token *token = peek_token();
@@ -311,6 +342,8 @@ void parse_exp_normal(History *history)
 	Node *node_left = node_peek_expressionable();
 	if (!node_left)
 	{
+		if (this_token_is_operator("&"))
+			parse_get_point_exp(history);
 		return;
 	}
 	// 跳到下一个token
@@ -597,7 +630,7 @@ void parse_datatype_adjust_size_for_primitive(DataType *out)
 {
 	if (out->type == DATA_TYPE_INT && out->type == DATA_TYPE_INT)
 	{
-		compile_error(current_process, "Doesn’t have data type \"int int\"");
+		compile_error(current_process, "Doesn’t have data type \"int int\"\n");
 	}
 	if (out->secondary && out->secondary->type == DATA_TYPE_INT)
 	{
@@ -623,7 +656,7 @@ void parse_datatype_init_type_and_size_for_primitive(Token *type, Token *seconda
 {
 	if (!parse_datatype_is_secondary_allow_for_type(type) && secondary)
 	{
-		compile_error(current_process, "this data type can‘t have secondary type\n");
+		compile_error(current_process, "this data type can’t have secondary type\n");
 	}
 	if (S_EQ(type->sval, "void"))
 	{
@@ -1242,7 +1275,6 @@ void parse_function(DataType *ret_datatype, Token *name_token, History *history)
 	Node *function_node = pop_node();
 	parse_current_function = function_node;
 	expect_op("(");
-#warning "Parse function args"
 	args = parse_function_args(history);
 	expect_sym(')');
 	function_node->function.args.variables = args;
@@ -1372,7 +1404,7 @@ void parse_struct_or_union(DataType *datatype)
 		break;
 
 	default:
-		compile_error(current_process, "BUG: Compiler failed creat data type");
+		compile_error(current_process, "BUG: Compiler failed creat data type\n");
 		break;
 	}
 }
@@ -1401,7 +1433,7 @@ void parse_variable_function_or_struct_union(History *history)
 		{
 			goto exit;
 		}
-		compile_error(current_process, "Variable or funvtion name must be identifier");
+		compile_error(current_process, "Variable or function name must be identifier\n");
 	}
 	next_token();
 
@@ -1424,7 +1456,7 @@ void parse_variable_function_or_struct_union(History *history)
 			token = next_token();
 			if (token->type != TOKEN_TYPE_IDENTIFIER)
 			{
-				compile_error(current_process, "the variable name must is identifier");
+				compile_error(current_process, "the variable name must is identifier\n");
 			}
 
 			parse_variable(&datatype, token, history);
@@ -1667,13 +1699,15 @@ void parse_case(History *history)
 	expect_keyword("case");
 	parse_expressionable_root(history);
 	expect_sym(':');
-	Node *exp_node = pop_node();
-	make_case_node(exp_node);
+	Node *exp_node = peek_node();
 
-	if (exp_node->type != NODE_TYPE_NUMBER)
+	if (!node_is_expressionable(exp_node))
 	{
 		compile_error(current_process, "We only spurre in case");
 	}
+
+	pop_node();
+	make_case_node(exp_node);
 
 	Node *case_node = pop_node();
 	parse_register_case(history, case_node);
@@ -1783,12 +1817,77 @@ void parse_expressionable(History *history)
 		;
 }
 
+unsigned long long computed_exp(char *op, unsigned long long left, unsigned long long right)
+{
+	if (S_EQ(op, "+"))
+		return left + right;
+	else if (S_EQ(op, "-"))
+		return left - right;
+	else if (S_EQ(op, "*"))
+		return left * right;
+	else if (S_EQ(op, "/"))
+		return left / right;
+	else if (S_EQ(op, "&"))
+		return left & right;
+	else if (S_EQ(op, "|"))
+		return left | right;
+	else if (S_EQ(op, "^"))
+		return left ^ right;
+	else if (S_EQ(op, "%"))
+		return left % right;
+	else if (S_EQ(op, "&&"))
+		return left && right;
+	else if (S_EQ(op, "||"))
+		return left || right;
+	else if (S_EQ(op, ">"))
+		return left > right;
+	else if (S_EQ(op, "<"))
+		return left < right;
+	else if (S_EQ(op, ">>"))
+		return left >> right;
+	else if (S_EQ(op, "<<"))
+		return left << right;
+	else if (S_EQ(op, "!="))
+		return left != right;
+	else if (S_EQ(op, "<="))
+		return left <= right;
+	else if (S_EQ(op, ">="))
+		return left >= right;
+	else if (S_EQ(op, "=="))
+		return left == right;
+	else
+		compile_error(current_process, "We can't computed \"%lld %s %lld\"\n", left, op, right);
+}
+
+void parse_deal_exp(Node **result_node)
+{
+	Node *be_dealed = *result_node;
+	if (be_dealed->type != NODE_TYPE_EXPRESSION) return;
+	if (be_dealed->exp.node_left && be_dealed->exp.node_left->type == NODE_TYPE_EXPRESSION)
+		parse_deal_exp(&be_dealed->exp.node_left);
+	if (be_dealed->exp.node_right && be_dealed->exp.node_right->type == NODE_TYPE_EXPRESSION)
+		parse_deal_exp(&be_dealed->exp.node_right);
+
+	if (be_dealed->exp.node_left && be_dealed->exp.node_left->type == NODE_TYPE_NUMBER && be_dealed->exp.node_right && be_dealed->exp.node_right->type == NODE_TYPE_NUMBER)
+	{
+		Node *left = be_dealed->exp.node_left, *right = be_dealed->exp.node_right;
+		char *op = be_dealed->exp.op;
+		
+		node_creat(&(Node){.type = NODE_TYPE_NUMBER, .llnum = computed_exp(op, left->llnum, right->llnum)});
+		
+		free_node(be_dealed);
+		*result_node = pop_node();
+	}
+}
+
 void parse_expressionable_root(History *history)
 {
 	History *second = history_down(history, history->flags);
 	parse_expressionable(second);
 	free_history(second);
 	Node *result_node = pop_node();
+
+	parse_deal_exp(&result_node);
 
 	push_node(result_node);
 }
@@ -1844,6 +1943,7 @@ int parse_next()
 	int res = 0;
 	switch (token->type)
 	{
+	case TOKEN_TYPE_OPERATOR:
 	case TOKEN_TYPE_NUMBER:
 	case TOKEN_TYPE_IDENTIFIER:
 	case TOKEN_TYPE_STRING:

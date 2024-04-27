@@ -1,0 +1,167 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-04-27 20:40+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: main.c:18
+msgid "Compile failed or compile error\n"
+msgstr ""
+
+#: main.c:22
+msgid "Everything compile fine\n"
+msgstr ""
+
+#: main.c:26
+msgid "Unknow error occurred\n"
+msgstr ""
+
+#: compiler.c:23
+msgid "on line %i,col %i in file %s\n"
+msgstr ""
+
+#: symresolver.c:114
+msgid "can’t build variable symble\n"
+msgstr ""
+
+#: symresolver.c:119
+msgid "can’t build function symble\n"
+msgstr ""
+
+#: lexer.c:54
+msgid "E escape character compilation error\n"
+msgstr ""
+
+#: lexer.c:228
+msgid "There is no corresponding symbol\n"
+msgstr ""
+
+
+#: lexer.c:368
+#, c-format
+msgid "The operator %s isn't valid\n"
+msgstr ""
+
+#: lexer.c:405
+msgid "You can't close an expression that doesn' exist!\n"
+msgstr ""
+
+#: lexer.c:609
+msgid "you didn't close the mutiline_comment\n"
+msgstr ""
+
+#: lexer.c:673
+msgid "You didn't close the quote!\n"
+msgstr ""
+
+#: lexer.c:787
+msgid "Unexpected token\n"
+msgstr ""
+
+#: parser.c:161
+#, c-format
+msgid "Expect the symbol \"%c\" however, other symbols are provided.\n"
+msgstr ""
+
+#: parser.c:170
+#, c-format
+msgid "Expect the symbole \"%s\" however, other operator are provided.\n"
+msgstr ""
+
+#: parser.c:179
+#, c-format
+msgid "Expect the keyword \"%s\" however, other keyword are provided.\n"
+msgstr ""
+
+#: parser.c:219
+msgid "This isn't a single token that can be converted to a node.\n"
+msgstr ""
+
+#: parser.c:320
+msgid "We can't get number's point!\n"
+msgstr ""
+
+#: parser.c:323
+msgid "Keyword should be use d in right place!\n"
+msgstr ""
+
+#: parser.c:326
+msgid "Have something wrong in here.\n"
+msgstr ""
+
+#: parser.c:425
+msgid ""
+"The operatoring object of the self-increment and subtraction operator must "
+"be a variable\n"
+msgstr ""
+
+#: parser.c:440
+msgid "The condition must be a expressionable\n"
+msgstr ""
+
+#: parser.c:624
+msgid "There isn’t have such combination\n"
+msgstr ""
+
+#: parser.c:633
+msgid "Doesn’t have data type \"int int\"\n"
+msgstr ""
+
+#: parser.c:659 parser.c:758
+msgid "this data type can’t have secondary type\n"
+msgstr ""
+
+#: parser.c:698
+msgid "BUG: Other keywords have entered this function\n"
+msgstr ""
+
+#: parser.c:953
+msgid "The size of variable can't be zero\n"
+msgstr ""
+
+#: parser.c:1407
+msgid "BUG: Compiler failed creat data type\n"
+msgstr ""
+
+#: parser.c:1426
+#, c-format
+msgid "\"%s %s\" has been initiallized\n"
+msgstr ""
+
+#: parser.c:1436
+msgid "Variable or function name must be identifier"
+msgstr ""
+
+#: parser.c:1459
+msgid "the variable name must is identifier"
+msgstr ""
+
+#: parser.c:1688
+msgid "The goto statement must use identifier, but you provide others.\n"
+msgstr ""
+
+#: parser.c:1707
+msgid "We only spurre in case"
+msgstr ""
+
+#: parser.c:1857
+#, c-format
+msgid "We can't computed \"%lld %s %lld\"\n"
+msgstr ""
+
+#: parser.c:1910
+msgid "The identifier must be used to declare the label\n"
+msgstr ""

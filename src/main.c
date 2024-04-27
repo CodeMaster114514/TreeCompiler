@@ -3,6 +3,9 @@
 
 int main(int argc, char *args[])
 {
+	setlocale (LC_ALL, "");
+	bindtextdomain(PACKAGE, LOCALEDIR);
+	textdomain (PACKAGE);
 	if (argc < 2)
 	{
 		goto error;
@@ -12,15 +15,15 @@ int main(int argc, char *args[])
 	if (res == COMPILER_FAILED_WITH_ERROR)
 	{
 	error:
-		printf("Compile failed or compile error\n");
+		printf(_("Compile failed or compile error\n"));
 	}
 	else if (res == COMPILER_FILE_COMPILE_OK)
 	{
-		printf("Everything compile fine\n");
+		printf(_("Everything compile fine\n"));
 	}
 	else
 	{
-		printf("Unknow error occurred\n");
+		printf(_("Unknow error occurred\n"));
 	}
 	return 0;
 }

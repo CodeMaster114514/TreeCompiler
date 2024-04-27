@@ -784,7 +784,7 @@ Token *read_next_token()
 	default:
 		token = read_special_token();
 		if (!token)
-			compile_error(LexProcess->cprocess, "Unexpexted token\n");
+			compile_error(LexProcess->cprocess, "Unexpected token\n");
 	}
 	return token;
 }

@@ -30,7 +30,7 @@ bool token_is_nl_or_comment_or_new_line(Token *token)
 
 bool token_is_primitive(Token *token)
 {
-	if (!token)
+	if (!token || token->sval)
 	{
 		return false;
 	}
