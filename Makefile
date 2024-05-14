@@ -20,6 +20,12 @@ endif
 tcc: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler.h
 	$(COMPILER) $(CODE_LOCATION)main.c ${INCLUDE} $(COMPILE_METHOR) ${OBJECTS} -o tcc
 
+tcc_cn.mo: zh_CN.po
+	msgfmt zh_CN.po -o tcc_cn.mo
+
+tcc_en.mo: en_US.po
+	msgfmt en_US.po -o tcc_en.mo
+
 ./build/compiler.o: $(CODE_LOCATION)./compiler.c $(CODE_LOCATION)./compiler.h
 	$(COMPILER) $(CODE_LOCATION)./compiler.c ${INCLUDE} $(COMPILE_METHOR) -o ./build/compiler.o -c
 
@@ -68,9 +74,16 @@ tcc: $(OBJECTS) $(LIB_FILE) $(CODE_LOCATION)./main.c $(CODE_LOCATION)./compiler.
 
 clean:
 	rm ${OBJECTS} ${LIB_FILE} -rf
-	rm ./main
+	rm ./tcc -rf
 
-install: tcc
+install: tcc tcc_cn.mo tcc_en.mo
 	rm $(MAIN_INSTALL)tcc -rf
-	install -m 755 main $(MAIN_INSTALL)tcc
+	install -m 755 tcc $(MAIN_INSTALL)tcc
+	cp tcc_cn.mo /usr/share/locale/zh_CN/LC_MESSAGES/tcc.mo
+	cp tcc_en.mo /usr/share/locale/en_US/LC_MESSAGES/tcc.mo
+
+uninstall:
+	rm $(MAIN_INSTALL)tcc -rf
+	rm /usr/share/locale/zh_CN/LC_MESSAGES/tcc.mo /usr/share/locale/en_US/LC_MESSAGES/tcc.mo -rf
+	rm tcc_cn.mo tcc_en.mo
 #	cp $(LIB_FILE) $(LIB_INSTALL)
